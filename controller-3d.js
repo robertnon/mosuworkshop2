@@ -65,18 +65,27 @@
    *    แกน 2 มิติ: y บวก = ขอบไกล (ฝั่งปุ่มไหล่), y ลบ = ปลายด้ามจับ
    *    ตอน extrude เสร็จจะหมุน -90° รอบแกน x ทำให้ y(2มิติ) -> -z
    * =================================================================== */
-  var OUTLINE_START = [0, 5.00];
-  var OUTLINE_R = [
-    ['L', 4.55, 4.98],                            // ขอบหลังแบนยาว (ช่วงไลต์บาร์)
-    ['C', 6.30, 4.92, 7.55, 4.42, 7.98, 3.42],    // มุมไหล่โค้งออก
-    ['C', 8.18, 2.92, 8.20, 2.35, 8.10, 1.85],    // จุดกว้างสุด (~16.2 ซม.)
-    ['C', 7.92, 1.05, 7.20, 0.72, 6.95, 0.10],    // คอดเข้าช่วงเอว
-    ['C', 6.76, -0.42, 7.10, -1.10, 7.32, -1.80], // บานออกเป็นด้ามจับ
-    ['C', 7.55, -2.70, 7.18, -3.72, 6.32, -4.30],
-    ['C', 5.68, -4.72, 4.72, -4.70, 4.12, -4.18], // ปลายด้ามมน
-    ['C', 3.62, -3.74, 3.36, -3.00, 3.10, -2.20],
-    ['C', 2.82, -1.44, 2.16, -1.06, 1.25, -0.96], // เว้าเข้าหาร่องกลาง
-    ['L', 0, -0.94]
+  /* เส้นขอบนี้ "ลอก" มาจากไฟล์เวกเตอร์ DualShock 4 ของจริงในโปรเจกต์
+   * (ds4-color-tool.html -> path id="rect4272-5-1-3" ซึ่งเป็นเงาตัวเครื่อง)
+   * ไม่ได้เดาสัดส่วนเอง: สเกลจาก viewBox ให้กว้าง 16.2 ซม. ตามสเปกจริง
+   * (162 x 98 มม.) แล้วเก็บเฉพาะครึ่งขวา (x >= 0) โค้ดจะสะท้อนเป็นครึ่งซ้ายให้เอง
+   *
+   * จุดสำคัญที่เดาผิดมาตลอด: DS4 "กว้างที่สุดตรงด้ามจับ" (y ≈ -3.1)
+   * ไม่ใช่ตรงบ่า/ปุ่มไหล่ ขอบไกลฝั่งไลต์บาร์กว้างแค่ ~12.2 ซม. เท่านั้น */
+  var OUTLINE_PTS = [
+    [0,4.636], [0.509,4.636], [1.019,4.636], [1.528,4.636], [2.037,4.636],
+    [2.547,4.636], [3.056,4.636], [3.566,4.636], [3.861,4.753], [4.183,4.837],
+    [4.521,4.888], [4.866,4.906], [5.206,4.89], [5.533,4.84], [5.836,4.756],
+    [6.105,4.636], [6.359,4.233], [6.614,3.829], [6.741,3.579], [6.869,3.33],
+    [6.994,2.981], [7.107,2.567], [7.22,2.154], [7.334,1.741], [7.454,1.216],
+    [7.574,0.69], [7.653,0.261], [7.731,-0.169], [7.81,-0.598], [7.862,-0.977],
+    [7.914,-1.357], [7.966,-1.736], [8.011,-2.195], [8.055,-2.654], [8.1,-3.113],
+    [8.048,-3.543], [7.9,-3.937], [7.668,-4.28], [7.366,-4.56], [7.005,-4.765],
+    [6.598,-4.882], [6.188,-4.902], [5.848,-4.851], [5.535,-4.74], [5.254,-4.571],
+    [5.01,-4.348], [4.808,-4.072], [4.653,-3.746], [4.498,-3.301], [4.343,-2.856],
+    [4.188,-2.41], [4.034,-1.965], [3.879,-1.52], [3.745,-1.39], [3.567,-1.307],
+    [3.333,-1.256], [2.857,-1.256], [2.381,-1.256], [1.905,-1.256], [1.428,-1.256],
+    [0.952,-1.256], [0.476,-1.256], [0,-1.256]
   ];
 
   var BODY_EXTRUDE = 1.40;   // ความหนาก่อนลบมุม
@@ -90,28 +99,21 @@
   // Shape เงาคอนโทรลเลอร์ (ครึ่งขวาจากตาราง + สะท้อนครึ่งซ้ายอัตโนมัติ)
   function buildBodyShape(THREE) {
     var s = new THREE.Shape();
-    var i, seg;
-    s.moveTo(OUTLINE_START[0], OUTLINE_START[1]);
-    for (i = 0; i < OUTLINE_R.length; i++) {
-      seg = OUTLINE_R[i];
-      if (seg[0] === 'L') { s.lineTo(seg[1], seg[2]); }
-      else { s.bezierCurveTo(seg[1], seg[2], seg[3], seg[4], seg[5], seg[6]); }
-    }
-    // จุดเริ่มของแต่ละเซกเมนต์ (ไว้ใช้ตอนไล่ย้อนกลับ)
-    var starts = [OUTLINE_START];
-    for (i = 0; i < OUTLINE_R.length; i++) {
-      seg = OUTLINE_R[i];
-      starts.push(seg[0] === 'L' ? [seg[1], seg[2]] : [seg[5], seg[6]]);
-    }
-    // ไล่ย้อน + กลับด้าน x = ครึ่งซ้าย (จุดกลางบน/ล่างมี x=0 จึงต่อกันพอดี)
-    for (i = OUTLINE_R.length - 1; i >= 0; i--) {
-      seg = OUTLINE_R[i];
-      var target = starts[i];
-      if (seg[0] === 'L') { s.lineTo(-target[0], target[1]); }
-      else { s.bezierCurveTo(-seg[3], seg[4], -seg[1], seg[2], -target[0], target[1]); }
-    }
+    var i, n = OUTLINE_PTS.length;
+    s.moveTo(OUTLINE_PTS[0][0], OUTLINE_PTS[0][1]);
+    for (i = 1; i < n; i++) s.lineTo(OUTLINE_PTS[i][0], OUTLINE_PTS[i][1]);
+    // ไล่ย้อน + กลับด้าน x = ครึ่งซ้าย (หัว-ท้ายอยู่บนแกน x=0 จึงต่อกันพอดี)
+    for (i = n - 2; i >= 1; i--) s.lineTo(-OUTLINE_PTS[i][0], OUTLINE_PTS[i][1]);
     s.closePath();
     return s;
+  }
+
+  // รายการจุดขอบครบวง (ครึ่งขวา + ครึ่งซ้ายสะท้อน) ในระบบพิกัด X/Z ของโมเดล
+  function bodyOutlineXZ() {
+    var poly = [], i, n = OUTLINE_PTS.length;
+    for (i = 0; i < n; i++) poly.push([OUTLINE_PTS[i][0], -OUTLINE_PTS[i][1]]);
+    for (i = n - 2; i >= 1; i--) poly.push([-OUTLINE_PTS[i][0], -OUTLINE_PTS[i][1]]);
+    return poly;
   }
 
   // สี่เหลี่ยมมุมมน (ใช้กับทัชแพด/ปุ่มไหล่/ปุ่มหลัง)
@@ -209,26 +211,58 @@
     return t * t * (3 - 2 * t);
   }
 
-  // ความสูงผิวบน ณ พิกัด (X, Z) — ยังไม่รวมการมนขอบ
-  // ผิวบนของ DS4 ค่อนข้าง "แบน" ไม่ใช่โดม ถ้าโป่งมากจะดูเหมือนลูกโป่ง
+  /* แกนกลางของด้ามจับ (จากไฟล์เวกเตอร์จริง): วงกลมในสุดที่บรรจุได้ในเงาด้ามจับ
+   * ไล่จาก (5.90, z=1.0) ไปถึง (6.45, z=4.6) — เอียงออกจากแกน z ราว 8.6°
+   * ใช้ระยะจาก "แกน" เส้นนี้เป็นตัวกำหนดความพองของด้ามจับ ทำให้ก้อนด้ามจับ
+   * วางตัวตามเงาจริง ไม่ใช่ก้อนกลมๆ ที่เดาตำแหน่งเอง */
+  var GRIP_A = [5.90, 1.00], GRIP_B = [6.45, 4.60];
+
+  function gripAxisDist(ax, Z) {
+    var vx = GRIP_B[0] - GRIP_A[0], vz = GRIP_B[1] - GRIP_A[1];
+    var wx = ax - GRIP_A[0], wz = Z - GRIP_A[1];
+    var L2 = vx * vx + vz * vz;
+    var t = L2 > 0 ? (wx * vx + wz * vz) / L2 : 0;
+    var tc = Math.max(0, Math.min(1, t));
+    var dx = ax - (GRIP_A[0] + tc * vx), dz = Z - (GRIP_A[1] + tc * vz);
+    return { d: Math.sqrt(dx * dx + dz * dz), t: t };
+  }
+
+  /* ความสูงผิวบน ณ พิกัด (X, Z) — ยังไม่รวมการมนขอบ
+   * ผิวบนของ DS4 แทบจะ "แบนเป็นระนาบ" ตรงกลาง แล้วค่อยลาดลงที่ปลายด้ามจับ
+   * กับขอบไกลฝั่งไลต์บาร์ ถ้าทำเป็นโดมจะดูอ้วนเหมือนจอยเด็กเล่นทันที */
   function topCore(X, Z) {
-    var h = 1.16;
-    var dx = X / 5.2, dz = (Z + 1.3) / 3.4;
-    h += 0.075 * Math.exp(-(dx * dx + dz * dz));       // นูนกลางนิดเดียว
-    h -= 0.30 * smoothstep(-0.2, 3.2, Z);              // ลาดลงหาปลายด้ามจับ
-    h -= 0.16 * smoothstep(2.4, 4.6, Z);
-    h -= 0.10 * smoothstep(3.6, 5.1, -Z);              // ขอบไกล (ฝั่งไลต์บาร์) เตี้ยลงนิด
+    var ax = Math.abs(X);
+    var h = 1.26;
+    // นูนกลางเล็กน้อยบริเวณแผงปุ่ม (ระหว่างทัชแพดกับก้านอนาล็อก)
+    var dx = X / 5.6, dz = (Z + 1.4) / 3.6;
+    h += 0.07 * Math.exp(-(dx * dx + dz * dz));
+    // ปลายด้ามจับลาดลงชัดเจน (คนถือแล้วนิ้วโป้งพาดได้)
+    var g = gripAxisDist(ax, Z);
+    h -= 0.62 * smoothstep(0.15, 1.05, g.t) * smoothstep(2.35, 0.95, g.d);
+    h -= 0.16 * smoothstep(2.6, 4.9, Z);
+    // ขอบไกลฝั่งไลต์บาร์ลาดลงหาแนวปุ่มไหล่
+    h -= 0.22 * smoothstep(3.4, 4.95, -Z);
+    // บ่าตรงโคนปุ่มไหล่หนาขึ้นนิดเดียว
+    h += 0.05 * Math.exp(-(Math.pow((ax - 5.0) / 1.7, 2) + Math.pow((Z + 4.1) / 1.1, 2)));
     return h;
   }
 
-  // ความหนาด้านล่าง ณ พิกัด (X, Z) — ตรงด้ามจับจะพองลงมามาก
+  /* ความหนาด้านล่าง ณ พิกัด (X, Z) — ด้ามจับพองลงมาเป็นก้อนยาวตามแกน GRIP_A→GRIP_B
+   * โปรไฟล์ตัดขวางใช้ cosine falloff (ไม่ใช่เกาส์เซียน) เพราะขอบก้อนด้ามจับ
+   * ของจริงจบเร็วกว่า ทำให้ได้สันที่คมกำลังดี ไม่บวมกลมจนดูเป็นหยดน้ำ */
   function botCore(X, Z) {
     var ax = Math.abs(X);
-    var h = 0.86;
-    var gx = (ax - 5.30) / 1.95, gz = (Z - 1.95) / 2.7;
-    h += 2.58 * Math.exp(-(gx * gx + gz * gz));        // ด้ามจับพองลง
-    var sx = X / 6.6, sz = (Z + 4.15) / 1.8;
-    h += 0.38 * Math.exp(-(sx * sx + sz * sz));        // ใต้ปุ่มไหล่หนาขึ้นนิด
+    var h = 1.06;
+    var g = gripAxisDist(ax, Z);
+    // ความพองสูงสุดของด้ามจับ ค่อยๆ ลดลงเมื่อเข้าใกล้ปลายด้าม
+    var along = smoothstep(-0.34, 0.12, g.t) * smoothstep(1.30, 0.82, g.t);
+    var radial = 0.5 + 0.5 * Math.cos(Math.PI * Math.min(1, g.d / 2.42));
+    h += 2.44 * along * radial * radial;
+    // ใต้บ่า/ปุ่มไหล่หนาขึ้นเล็กน้อย (ที่เก็บมอเตอร์สั่น)
+    var sx = X / 6.2, sz = (Z + 4.05) / 1.55;
+    h += 0.34 * Math.exp(-(sx * sx + sz * sz));
+    // แอ่งตื้นๆ กลางฝาหลัง (ช่องแบตเตอรี่)
+    h -= 0.10 * Math.exp(-(Math.pow(X / 2.6, 2) + Math.pow((Z + 1.1) / 2.2, 2)));
     return h;
   }
 
@@ -260,22 +294,9 @@
    * ข้อดี: สามเหลี่ยมขนาดสม่ำเสมอทั้งใบ + ได้ระยะห่างจากขอบมาใช้มนขอบฟรีๆ
    */
   function buildBodySolid(THREE) {
-    // --- 1) เงามองจากด้านบน -> รายการจุดขอบ (แปลงเป็นระบบ X/Z แล้ว) ---
-    var shape = buildBodyShape(THREE);
-    var raw = shape.extractPoints(80).shape;
-    var poly = [];
-    for (var i = 0; i < raw.length; i++) {
-      var px = raw[i].x, pz = -raw[i].y;
-      if (poly.length) {
-        var last = poly[poly.length - 1];
-        if (Math.abs(last[0] - px) < 1e-7 && Math.abs(last[1] - pz) < 1e-7) continue;
-      }
-      poly.push([px, pz]);
-    }
-    if (poly.length > 1) {
-      var f0 = poly[0], l0 = poly[poly.length - 1];
-      if (Math.abs(f0[0] - l0[0]) < 1e-7 && Math.abs(f0[1] - l0[1]) < 1e-7) poly.pop();
-    }
+    // --- 1) เงามองจากด้านบน (เส้นขอบ DS4 ของจริง แปลงเป็นระบบ X/Z แล้ว) ---
+    var i;
+    var poly = bodyOutlineXZ();
     var PN = poly.length;
 
     // --- 2) ฟังก์ชันระยะห่างแบบมีเครื่องหมาย (ลบ = อยู่ข้างใน) ---
@@ -301,6 +322,10 @@
       if (poly[i][1] < minZ) minZ = poly[i][1];
       if (poly[i][1] > maxZ) maxZ = poly[i][1];
     }
+    /* ผนังข้างจะ "ป่อง" ออกไป WALL_BULGE ตรงกลางความหนา ถ้าเดินตารางที่ขอบจริง
+     * เป๊ะๆ ตัวเครื่องจะกว้างเกินของจริงไป 2*WALL_BULGE ดังนั้นหดขอบเข้ามาก่อน
+     * เท่ากับความป่อง แล้วผนังจะป่องออกไปพอดีเส้นขอบ DS4 ของจริง */
+    var ISO = WALL_BULGE;
     var H = 0.15;
     minX -= H * 2; maxX += H * 2; minZ -= H * 2; maxZ += H * 2;
     var NX = Math.ceil((maxX - minX) / H) + 1;
@@ -309,7 +334,7 @@
     var gz = function (iz) { return minZ + iz * H; };
     var field = new Float32Array(NX * NZ);
     for (var ix = 0; ix < NX; ix++) {
-      for (var iz = 0; iz < NZ; iz++) field[ix * NZ + iz] = sdf(gx(ix), gz(iz));
+      for (var iz = 0; iz < NZ; iz++) field[ix * NZ + iz] = sdf(gx(ix), gz(iz)) + ISO;
     }
     function fieldAt(ix, iz) { return field[ix * NZ + iz]; }
 
@@ -375,8 +400,9 @@
     var VN = pts2.length;
 
     function gripMask(X, Z) {
-      var mx = (Math.abs(X) - 5.15) / 2.3, mz = (Z - 1.9) / 3.0;
-      return Math.min(1, Math.exp(-(mx * mx + mz * mz)));
+      var g = gripAxisDist(Math.abs(X), Z);
+      var along = smoothstep(-0.30, 0.15, g.t) * smoothstep(1.25, 0.80, g.t);
+      return Math.min(1, along * Math.max(0, 1 - g.d / 2.5));
     }
     function pushVert(X, Y, Z, tint) {
       position.push(X, Y, Z);
@@ -509,7 +535,7 @@
 
   // แป้นทิศทาง (D-pad) รูปกากบาทมุมมน
   function buildDpadGeo(THREE) {
-    var arm = 1.16, w = 0.78, r = 0.16;
+    var arm = 1.31, w = 0.89, r = 0.17;
     var s = new THREE.Shape();
     var a = w / 2;
     s.moveTo(-a, -arm + r);
@@ -543,7 +569,7 @@
 
   // ปุ่มไหล่ L1/R1 — แผ่นมุมมนบางๆ วางแนบขอบไกลของไหล่
   function buildBumperGeo(THREE) {
-    var geo = roundedBoxGeo(THREE, 2.85, 1.12, 0.56, 0.34, 0.18);
+    var geo = roundedBoxGeo(THREE, 1.99, 0.66, 0.40, 0.24, 0.16);
     geo.rotateX(-Math.PI / 2);
     return geo;
   }
@@ -742,8 +768,8 @@
     add(buildBodySolid(THREE), mats.shell, null, null, 'body');
 
     // ---- ทัชแพด (แผ่นดำเงาบนกลางค่อนไปด้านไกล) ----
-    var tpZ = -2.90;
-    var tpGeo = new THREE.ExtrudeGeometry(roundedRectShape(THREE, 5.3, 2.45, 0.4), {
+    var tpZ = -3.05;
+    var tpGeo = new THREE.ExtrudeGeometry(roundedRectShape(THREE, 5.36, 2.58, 0.32), {
       depth: 0.14, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.07,
       bevelSegments: 3, curveSegments: 10
     });
@@ -751,27 +777,30 @@
     add(tpGeo, mats.touchpad, [0, topAt(0, tpZ) + 0.05, tpZ], null, 'touchpad');
 
     // ---- Light Bar (ขอบไกลสุด เหนือทัชแพด) ----
-    var lbGeo = roundedBoxGeo(THREE, 4.3, 0.4, 0.26, 0.13, 0.09);
-    add(lbGeo, mats.lightbar, [0, topAt(0, -4.75) - 0.20, -4.95], [-0.62, 0, 0], 'lightbar');
+    var lbGeo = roundedBoxGeo(THREE, 5.08, 0.38, 0.24, 0.12, 0.08);
+    add(lbGeo, mats.lightbar, [0, topAt(0, -4.45) - 0.17, -4.60], [-0.58, 0, 0], 'lightbar');
 
     // ---- ปุ่มไหล่ L1/R1 + ไกปืน L2/R2 ----
     // ต้องอยู่ในเงาไหล่: ที่ z=-4.6 ตัวเครื่องกว้างถึง |x|~7.0 เท่านั้น
     // (ถ้าดันออกไปกว่านี้ มุมปุ่มจะโผล่พ้นขอบกรอบเวลามองจากด้านบน)
-    var bumpZ = -4.02, bumpX = 5.05;
-    add(buildBumperGeo(THREE), mats.trigger, [-bumpX, topAt(-bumpX, bumpZ) + 0.02, bumpZ], [0.14, 0.13, 0], 'bumperL');
-    add(buildBumperGeo(THREE), mats.trigger, [bumpX, topAt(bumpX, bumpZ) + 0.02, bumpZ], [0.14, -0.13, 0], 'bumperR');
-    add(buildTriggerGeo(THREE), mats.trigger, [-bumpX - 0.05, -0.30, -4.62], [-1.16, 0.16, 0], 'triggerL');
-    add(buildTriggerGeo(THREE), mats.trigger, [bumpX + 0.05, -0.30, -4.62], [-1.16, -0.16, 0], 'triggerR');
+    var bumpZ = -4.80, bumpX = 4.94;
+    add(buildBumperGeo(THREE), mats.trigger, [-bumpX, topAt(-bumpX, bumpZ) + 0.01, bumpZ], [0.42, 0.10, 0], 'bumperL');
+    add(buildBumperGeo(THREE), mats.trigger, [bumpX, topAt(bumpX, bumpZ) + 0.01, bumpZ], [0.42, -0.10, 0], 'bumperR');
+    add(buildTriggerGeo(THREE), mats.trigger, [-4.93, -0.34, -4.66], [-1.16, 0.16, 0], 'triggerL');
+    add(buildTriggerGeo(THREE), mats.trigger, [4.93, -0.34, -4.66], [-1.16, -0.16, 0], 'triggerR');
 
     // ---- D-pad ----
-    var dpadX = -4.55, dpadZ = -1.30;
-    var dpadBase = new THREE.CylinderGeometry(1.42, 1.48, 0.16, 36);
+    var dpadX = -5.07, dpadZ = -2.33;
+    var dpadBase = new THREE.CylinderGeometry(1.82, 1.88, 0.16, 36);
     add(dpadBase, mats.dark, [dpadX, topAt(dpadX, dpadZ) - 0.02, dpadZ], null, 'dpadBase');
     add(buildDpadGeo(THREE), mats.button, [dpadX, topAt(dpadX, dpadZ) + 0.03, dpadZ], null, 'dpad');
 
     // ---- ปุ่มหน้า 4 ปุ่ม ----
-    var faceCx = 4.55, faceCz = -1.30, faceOff = 1.30;
-    var btnGeo = new THREE.CylinderGeometry(0.60, 0.58, 0.3, 30);
+    var faceCx = 5.09, faceCz = -2.33, faceOff = 1.18;
+    // แอ่งวงกลมรอบปุ่มหน้า (เส้นผ่านศูนย์กลาง 3.76 ซม. เท่ากับฝั่ง D-pad)
+    add(new THREE.CylinderGeometry(1.82, 1.88, 0.16, 36), mats.dark,
+        [faceCx, topAt(faceCx, faceCz) - 0.02, faceCz], null, 'faceBase');
+    var btnGeo = new THREE.CylinderGeometry(0.505, 0.49, 0.3, 30);
     var btnDefs = [
       ['btnTriangle', faceCx, faceCz - faceOff, 'triangle'],
       ['btnCircle', faceCx + faceOff, faceCz, 'circle'],
@@ -785,7 +814,7 @@
       var tex = makeSymbolTexture(THREE, d[3]);
       if (tex) {
         var symMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
-        var sym = new THREE.Mesh(new THREE.PlaneGeometry(0.88, 0.88), symMat);
+        var sym = new THREE.Mesh(new THREE.PlaneGeometry(0.74, 0.74), symMat);
         sym.rotation.x = -Math.PI / 2;
         sym.position.set(d[1], by + 0.17, d[2]);
         sym.renderOrder = 2;
@@ -795,11 +824,11 @@
     });
 
     // ---- ก้านอนาล็อกซ้าย/ขวา ----
-    var stickX = 2.62, stickZ = 0.75;
+    var stickX = 2.59, stickZ = -0.14;
     var stickY = topAt(stickX, stickZ);
     var capGeo = buildStickCapGeo(THREE);
-    var wellGeo = new THREE.CylinderGeometry(1.28, 1.38, 0.22, 34);
-    var ringGeo = new THREE.TorusGeometry(0.99, 0.07, 12, 40);
+    var wellGeo = new THREE.CylinderGeometry(1.38, 1.45, 0.22, 34);
+    var ringGeo = new THREE.TorusGeometry(0.95, 0.07, 12, 40);
     parts.stickRings = [];
     [-1, 1].forEach(function (s, idx) {
       add(wellGeo, mats.dark, [s * stickX, stickY - 0.06, stickZ], null, 'stickWell' + idx);
@@ -809,15 +838,15 @@
     });
 
     // ---- ปุ่ม PS + ลำโพง + Share/Options ----
-    var psGeo = new THREE.CylinderGeometry(0.40, 0.40, 0.14, 24);
-    add(psGeo, mats.dark, [0, topAt(0, 0.45) + 0.02, 0.45], null, 'psButton');
-    var spkGeo = roundedBoxGeo(THREE, 1.4, 0.46, 0.1, 0.18, 0.04);
+    var psGeo = new THREE.CylinderGeometry(0.405, 0.405, 0.14, 24);
+    add(psGeo, mats.dark, [0, topAt(0, -0.01) + 0.02, -0.01], null, 'psButton');
+    var spkGeo = roundedBoxGeo(THREE, 1.29, 0.57, 0.1, 0.2, 0.04);
     spkGeo.rotateX(-Math.PI / 2);
-    add(spkGeo, mats.dark, [0, topAt(0, -0.68) + 0.01, -0.68], null, 'speaker');
-    var smallGeo = roundedBoxGeo(THREE, 0.4, 0.95, 0.16, 0.15, 0.06);
+    add(spkGeo, mats.dark, [0, topAt(0, -0.96) + 0.01, -0.96], null, 'speaker');
+    var smallGeo = roundedBoxGeo(THREE, 0.52, 0.91, 0.16, 0.16, 0.06);
     smallGeo.rotateX(-Math.PI / 2);
-    add(smallGeo, mats.button, [-3.15, topAt(-3.15, -3.45) + 0.02, -3.45], null, 'share');
-    add(smallGeo, mats.button, [3.15, topAt(3.15, -3.45) + 0.02, -3.45], null, 'options');
+    add(smallGeo, mats.button, [-3.28, topAt(-3.28, -3.89) + 0.02, -3.89], null, 'share');
+    add(smallGeo, mats.button, [3.28, topAt(3.28, -3.89) + 0.02, -3.89], null, 'options');
 
     /* ---- ปุ่มหลัง (ซ่อนไว้ก่อน จะโผล่เมื่อลูกค้าเลือก) ----
      * วางใต้ฝาหลังตรงกลางด้ามจับ: ช่วง x ~ 4.2-5.6, z ~ 1.0-2.6
@@ -827,9 +856,12 @@
     [-1, 1].forEach(function (s) {
       var key = s < 0 ? 'left' : 'right';
       var holder = new THREE.Group();
-      holder.position.set(s * 4.92, -3.02, 1.85);
-      // ครีบยาวไปตามแนวด้ามจับ (เอียงจากแกน z ราว 20°) และเอียงตามผิวโค้งนิดหน่อย
-      holder.rotation.set(0.06, s * 0.34, s * 0.22);
+      /* วางบนสันด้านในของฝาหลังด้ามจับ ตรงที่นิ้วกลาง/นางพาดพอดี
+       * ผิวหลังแถวนี้อยู่ราว y = -3.2 (วัดจากตัวโมเดลจริง) จึงฝังฐานครีบ
+       * ไว้ในเปลือกนิดหนึ่งแล้วให้ปลายยื่นพ้นลงมา
+       * แนวยาวของครีบเอียงตามแกนด้ามจับ (GRIP_A -> GRIP_B ราว 9°) */
+      holder.position.set(s * 5.42, -3.02, 2.15);
+      holder.rotation.set(0.05, s * 0.16, s * 0.30);
       holder.visible = false;
       group.add(holder);
       var mesh = new THREE.Mesh(buildPaddleGeo(THREE, PADDLE_HEIGHT.standard), mats.paddle);
