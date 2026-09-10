@@ -11,6 +11,9 @@
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="./image-slot.js"></script>
+  <!-- โมเดลคอนโทรลเลอร์ 3 มิติ (ปั้นด้วยโค้ด ไม่ต้องโหลดไฟล์โมเดล)
+       three.js จะถูกโหลดทีหลังแบบ lazy ตอนเปิดหน้าฟอร์มจริง -->
+  <script src="./controller-3d.js"></script>
   <style>
     :root {
       --bg: #090A07;
@@ -2976,6 +2979,221 @@
     .wizard-summary-row-value.order-receipt-emphasize { color: var(--copper-text); font-weight: 700; }
 
     /* ===================================================================
+       3D CONTROLLER PREVIEW (three.js)
+       =================================================================== */
+
+    .preview3d {
+      position: relative;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 14px 12px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+
+    .preview3d::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 38%, rgba(198, 255, 0, 0.07) 0%, transparent 68%);
+      pointer-events: none;
+    }
+
+    body.gold-theme .preview3d::before {
+      background: radial-gradient(circle at 50% 38%, rgba(203, 178, 106, 0.07) 0%, transparent 68%);
+    }
+
+    .preview3d-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .preview3d-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--copper-text);
+    }
+
+    .preview3d-hint {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: 0.06em;
+      color: var(--silk-dim);
+      transition: opacity 0.4s ease;
+    }
+
+    .preview3d-hint.is-hidden { opacity: 0; }
+
+    .preview3d-stage {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 300px;
+      border-radius: 10px;
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 62%, rgba(198, 255, 0, 0.10), transparent 70%),
+        linear-gradient(170deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.28));
+      cursor: grab;
+      touch-action: pan-y;
+      overflow: hidden;
+    }
+
+    body.gold-theme .preview3d-stage {
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 62%, rgba(203, 178, 106, 0.10), transparent 70%),
+        linear-gradient(170deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.28));
+    }
+
+    .preview3d-stage:active { cursor: grabbing; }
+    .preview3d-stage canvas { display: block; width: 100%; height: 100%; }
+
+    .preview3d-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--silk-dim);
+      pointer-events: none;
+    }
+
+    .preview3d-spinner {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--line);
+      border-top-color: var(--copper);
+      animation: preview3dSpin 0.9s linear infinite;
+    }
+
+    @keyframes preview3dSpin { to { transform: rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .preview3d-spinner { animation-duration: 2.4s; }
+    }
+
+    .preview3d-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .preview3d-views {
+      display: flex;
+      flex: 1;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .preview3d-view {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 4px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.22);
+      color: var(--silk-dim);
+      font-family: var(--sans);
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .preview3d-view:hover { color: var(--silk); border-color: var(--copper-dim); }
+
+    .preview3d-view.active {
+      background: rgba(198, 255, 0, 0.14);
+      border-color: var(--copper);
+      color: var(--copper-text);
+      font-weight: 600;
+    }
+
+    body.gold-theme .preview3d-view.active { background: rgba(203, 178, 106, 0.16); }
+
+    .preview3d-spin {
+      flex: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.22);
+      color: var(--silk-dim);
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    }
+
+    .preview3d-spin[aria-pressed="true"] {
+      background: rgba(198, 255, 0, 0.14);
+      border-color: var(--copper);
+      color: var(--copper-text);
+    }
+
+    body.gold-theme .preview3d-spin[aria-pressed="true"] { background: rgba(203, 178, 106, 0.16); }
+
+    .preview3d-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .preview3d-badges:empty { display: none; }
+
+    .preview3d-badge {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: 0.04em;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.24);
+      color: var(--silk-dim);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .preview3d-badge i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--copper);
+      flex: none;
+    }
+
+    /* จอเล็ก: ลดความสูงเวทีลงให้ยังเห็นฟอร์มได้ */
+    @media (max-width: 900px) {
+      .preview3d-stage { height: 250px; }
+    }
+
+    @media (max-width: 560px) {
+      .preview3d-stage { height: 215px; }
+      .preview3d-view { font-size: 10.5px; padding: 6px 2px; }
+    }
+
+    /* ถ้ามีพรีวิว 3 มิติแล้ว ซ่อนรูปแบนเดิมทิ้ง (โชว์กลับมาเมื่อ 3D ใช้ไม่ได้) */
+    .summary-col.has-3d .preview-frame-placeholder { display: none; }
+
+    /* ===================================================================
        SVG CONTROLLER PREVIEW STYLES
        =================================================================== */
 
@@ -3749,6 +3967,34 @@
           </div><!-- /.wizard-main-col -->
 
         <aside class="summary-col" id="summaryCol">
+          <!-- ===== พรีวิวคอนโทรลเลอร์ 3 มิติ (three.js) =====
+               หมุน/ซูมได้ อัปเดตสีกรอบ+ชิ้นส่วนตามตัวเลือกในฟอร์มแบบเรียลไทม์
+               ถ้าเครื่องไม่รองรับ WebGL หรือโหลด three.js ไม่ได้ จะซ่อนกล่องนี้
+               แล้วโชว์รูปแบนของเดิม (.preview-frame-placeholder) แทนอัตโนมัติ -->
+          <div class="preview3d" id="preview3dPanel" hidden>
+            <div class="preview3d-head">
+              <span class="preview3d-label">Controller Preview · 3D</span>
+              <span class="preview3d-hint" id="preview3dHint">ลากเพื่อหมุน</span>
+            </div>
+            <div class="preview3d-stage" id="preview3dStage">
+              <div class="preview3d-loading" id="preview3dLoading">
+                <span class="preview3d-spinner" aria-hidden="true"></span>
+                <span>กำลังโหลดโมเดล 3 มิติ…</span>
+              </div>
+            </div>
+            <div class="preview3d-toolbar">
+              <div class="preview3d-views" role="group" aria-label="มุมกล้อง">
+                <button type="button" class="preview3d-view active" data-view3d="hero">มุมเอียง</button>
+                <button type="button" class="preview3d-view" data-view3d="top">ด้านบน</button>
+                <button type="button" class="preview3d-view" data-view3d="front">ด้านหน้า</button>
+                <button type="button" class="preview3d-view" data-view3d="back">ปุ่มหลัง</button>
+              </div>
+              <button type="button" class="preview3d-spin" id="preview3dSpin" aria-pressed="true"
+                title="หมุนอัตโนมัติ">⟳</button>
+            </div>
+            <div class="preview3d-badges" id="preview3dBadges"></div>
+          </div>
+
           <div class="preview-frame-placeholder">
             <span class="preview-frame-placeholder-label">Controller Preview</span>
             <img src="SVGDS4/white.svg" alt="Controller Preview" class="preview-frame-img" id="framePreviewShellImg">
@@ -5010,6 +5256,7 @@
         if (typeof updateAnalogTypePreview === 'function') updateAnalogTypePreview();
         if (typeof updateFrameTriggerPreview === 'function') updateFrameTriggerPreview();
         if (typeof updateFrameShellPreview === 'function') updateFrameShellPreview();
+        if (typeof updatePreview3D === 'function') updatePreview3D();
       }
 
       form.querySelectorAll('input, select').forEach(function (el) {
@@ -5800,8 +6047,9 @@
 
         if (pricesSettled) {
           applyPriceDataToDom();
-          rerender();
         }
+        // เรียกเสมอ (ไม่ผูกกับ pricesSettled) เพราะพรีวิว 3 มิติต้องรู้ว่าสลับ PS4/PS5 แล้ว
+        rerender();
       }
 
       document.querySelectorAll('.platform-card').forEach(function (btn) {
@@ -6906,6 +7154,151 @@
 
         // Init
         goToStep(1, 'next');
+      })();
+
+      // =====================================================================
+      // 3D CONTROLLER PREVIEW (three.js) — controller-3d.js
+      // ---------------------------------------------------------------------
+      // อ่านค่าจากฟอร์มชุดเดียวกับพรีวิวแบบเดิม แล้วส่งให้โมเดล 3 มิติอัปเดตสี/ชิ้นส่วน
+      // ถ้าเครื่องไม่รองรับ WebGL หรือโหลดไฟล์โมเดลไม่ได้ -> ซ่อนกล่อง 3D
+      // แล้วปล่อยให้รูปแบนเดิมทำงานต่อเหมือนไม่มีอะไรเกิดขึ้น
+      // =====================================================================
+      var updatePreview3D = function () {};
+      (function initPreview3D() {
+        var panel = document.getElementById('preview3dPanel');
+        var stage = document.getElementById('preview3dStage');
+        var summaryCol = document.getElementById('summaryCol');
+        if (!panel || !stage || !window.MosuController3D) return;
+
+        var loadingEl = document.getElementById('preview3dLoading');
+        var hintEl = document.getElementById('preview3dHint');
+        var badgesEl = document.getElementById('preview3dBadges');
+        var spinBtn = document.getElementById('preview3dSpin');
+        var viewBtns = Array.prototype.slice.call(panel.querySelectorAll('.preview3d-view'));
+
+        // ป้ายชื่อไว้โชว์ใต้โมเดล (ใช้ค่าจากตัวเลือกที่ลูกค้าเลือกจริง)
+        var STICK_LABEL = { alps: 'ALPS', he: 'HE (Hall Effect)', tmr: 'TMR' };
+        var TF_LABEL = { none: 'ปุ่มเดิมจากโรงงาน', clicky: 'Trigger/Bumper Clicky', full: 'Full Clicky ทั้งชุด' };
+        var PADDLE_H_LABEL = { standard: 'มาตรฐาน', medium: 'ต่ำ', high: 'สูง' };
+        var PCB_LABEL = { suiovoi: 'SuiOvOi 8K', hyperstrike: 'Hyperstrike 8K' };
+
+        function readState() {
+          var shellVal = getSelected('ps4shell');
+          var colorVal = (typeof getShellColorValue === 'function') ? getShellColorValue() : null;
+          return {
+            shell: shellVal,
+            shellColor: colorVal,
+            stick: getSelected('stickModule') || getSelected('analogType'),
+            triggerFace: (typeof getTriggerFaceValue === 'function') ? getTriggerFaceValue() : null,
+            paddles: (typeof getPaddlesValue === 'function') ? getPaddlesValue() : null,
+            paddleSide: (function () {
+              var sel = document.getElementById('paddleSideSelect');
+              return sel && sel.value ? sel.value : null;
+            })(),
+            paddleHeight: (function () {
+              var sel = document.getElementById('paddleHeightSelect');
+              return sel && sel.value ? sel.value : null;
+            })(),
+            pcb: getSelected('pcb')
+          };
+        }
+
+        function renderBadges(st) {
+          if (!badgesEl) return;
+          var out = [];
+          var colors = window.MosuController3D.SHELL_COLORS;
+          if (st.shell === 'noController' && st.shellColor && colors[st.shellColor]) {
+            out.push(['#' + colors[st.shellColor].body.toString(16).padStart(6, '0'), colors[st.shellColor].label]);
+          } else if (st.shell === 'withController') {
+            out.push(['#24272B', 'ใช้กรอบเดิมของคุณ']);
+          }
+          if (st.pcb && PCB_LABEL[st.pcb]) out.push(['#27B6FF', PCB_LABEL[st.pcb]]);
+          if (st.stick && STICK_LABEL[st.stick]) {
+            var acc = window.MosuController3D.STICK_ACCENT[st.stick];
+            out.push([acc ? '#' + acc.color.toString(16).padStart(6, '0') : '#C6FF00', STICK_LABEL[st.stick]]);
+          }
+          if (st.triggerFace && TF_LABEL[st.triggerFace]) out.push(['#C6FF00', TF_LABEL[st.triggerFace]]);
+          if (st.paddles === 'one' || st.paddles === 'two') {
+            var n = st.paddles === 'two' ? '2 ปุ่ม' : '1 ปุ่ม';
+            if (st.paddles === 'one' && st.paddleSide) n += (st.paddleSide === 'left' ? ' (ซ้าย)' : ' (ขวา)');
+            if (st.paddleHeight && PADDLE_H_LABEL[st.paddleHeight]) n += ' · ' + PADDLE_H_LABEL[st.paddleHeight];
+            out.push(['#C6FF00', 'ปุ่มหลัง ' + n]);
+          }
+          badgesEl.innerHTML = out.map(function (b) {
+            return '<span class="preview3d-badge"><i style="background:' + b[0] + '"></i>' + escapeHtml(b[1]) + '</span>';
+          }).join('');
+        }
+
+        var viewer = null;
+
+        function fallbackToFlat() {
+          panel.hidden = true;
+          if (summaryCol) summaryCol.classList.remove('has-3d');
+        }
+
+        // โชว์โมเดลเฉพาะตอนที่ตรงกับของจริงเท่านั้น:
+        //  - โหมด "เปลี่ยนอนาล็อกอย่างเดียว" ไม่ได้แตะตัวเครื่อง จึงไม่ต้องโชว์
+        //  - โมเดลนี้เป็นทรง DualShock 4 ถ้าลูกค้าเลือก PS5 (DualSense) ทรงจะไม่ตรง
+        //    เลยซ่อนไว้ก่อน (ตกไปใช้รูปแบนเดิม) ดีกว่าโชว์ของผิดรุ่นให้ลูกค้าเข้าใจผิด
+        function shouldShow() {
+          if (currentMode === 'analogOnly') return false;
+          if (typeof selectedPlatform !== 'undefined' && selectedPlatform === 'ps5') return false;
+          return true;
+        }
+
+        updatePreview3D = function () {
+          if (!viewer || viewer.failed) return;
+          var show = shouldShow();
+          panel.hidden = !show;
+          if (summaryCol) summaryCol.classList.toggle('has-3d', show);
+          if (!show) return;
+          var st = readState();
+          viewer.setState(st);
+          renderBadges(st);
+        };
+
+        if (!window.MosuController3D.isWebGLAvailable()) { fallbackToFlat(); return; }
+
+        panel.hidden = !shouldShow();
+        if (summaryCol) summaryCol.classList.toggle('has-3d', shouldShow());
+
+        viewer = window.MosuController3D.createViewer(stage, {
+          state: readState(),
+          autoRotate: !reducedMotion,
+          onReady: function () {
+            if (loadingEl) loadingEl.remove();
+            updatePreview3D();
+            if (spinBtn) spinBtn.setAttribute('aria-pressed', String(viewer.isAutoRotate()));
+          },
+          onFail: function (err) {
+            if (window.console && console.warn) console.warn('พรีวิว 3 มิติใช้งานไม่ได้:', err);
+            fallbackToFlat();
+          },
+          onEngage: function () {
+            if (hintEl) hintEl.classList.add('is-hidden');
+            if (spinBtn) spinBtn.setAttribute('aria-pressed', 'false');
+          }
+        });
+
+        viewBtns.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            if (!viewer || !viewer.ready) return;
+            viewBtns.forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            viewer.setView(btn.dataset.view3d);
+            if (spinBtn) spinBtn.setAttribute('aria-pressed', 'false');
+            if (hintEl) hintEl.classList.add('is-hidden');
+          });
+        });
+
+        if (spinBtn) {
+          spinBtn.addEventListener('click', function () {
+            if (!viewer || !viewer.ready) return;
+            var next = !viewer.isAutoRotate();
+            viewer.setAutoRotate(next);
+            spinBtn.setAttribute('aria-pressed', String(next));
+          });
+        }
       })();
 
       // =====================================================================
