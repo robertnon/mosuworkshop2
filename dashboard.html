@@ -1,0 +1,2503 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แดชบอร์ดแอดมิน — Controller Mod by Mosu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --bg: #090A07;
+      --panel: #141812;
+      --panel-2: #1C2218;
+      --line: #2A3616;
+      --copper: #C6FF00;
+      --copper-dim: #5C6E1A;
+      --copper-text: #D4FF4D;
+      --copper-bright: #E3FF8C;
+      --silk: #F2F5EC;
+      --silk-dim: #9AA495;
+      --required: #FF4D6D;
+      --ok: #6EE7C9;
+      --warn: #FFB454;
+      --mono: 'IBM Plex Mono', ui-monospace, monospace;
+      --sans: 'IBM Plex Sans Thai', 'IBM Plex Sans', system-ui, sans-serif;
+      --sidebar-w: 228px;
+    }
+
+    /* ---------- ธีม Carbon & Ice (ต้องตรงกับ index.html / my-orders.html) ----------
+       ใช้คีย์ localStorage 'mosuTheme' ร่วมกันทุกหน้า สลับที่หน้าไหนก็ตามกันหมด */
+    body.carbon-theme {
+      --bg: #090A0C;
+      --panel: #14171C;
+      --panel-2: #1C2027;
+      --line: #262B33;
+      --copper: #C6FF00;
+      --copper-dim: #39414D;
+      --copper-text: #D8FF63;
+      --copper-bright: #E3FF8C;
+      --silk: #F0F3F6;
+      --silk-dim: #858E9B;
+      --required: #FF4D6D;
+      --ok: #6EE7C9;
+      --warn: #FFB454;
+    }
+
+    /* พื้นหลังหน้านี้ฝังสีเขียว rgba(198,255,0,…) ไว้ตรงๆ ไม่ได้อ่านจากตัวแปร ต้องเขียนทับเอง */
+    body.carbon-theme {
+      background-image:
+        radial-gradient(circle 560px at 15% 0%, rgba(198, 255, 0, 0.06) 0%, rgba(198, 255, 0, 0.02) 60%, transparent 100%),
+        radial-gradient(circle 380px at 85% 90%, rgba(79, 216, 232, 0.05) 0%, transparent 70%),
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 2px, transparent 2px);
+    }
+
+    body.carbon-theme .tab-btn:hover { background: rgba(255, 255, 255, 0.045); }
+    body.carbon-theme .tab-btn.active { background: rgba(198, 255, 0, 0.10); }
+    body.carbon-theme .btn-ghost:hover { background: rgba(255, 255, 255, 0.04); }
+    body.carbon-theme tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+
+    /* ปุ่มสลับธีมมุมขวาบน */
+    .theme-toggle-switch {
+      position: relative;
+      width: 38px;
+      height: 20px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      transition: border-color .15s ease;
+    }
+
+    .theme-toggle-switch:hover { border-color: var(--copper-dim); }
+
+    .theme-toggle-dot {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--copper);
+      transition: transform .2s ease, background .2s ease;
+      box-shadow: 0 0 6px rgba(198, 255, 0, 0.5);
+    }
+
+    body.carbon-theme .theme-toggle-dot {
+      transform: translateX(18px);
+      background: #4FD8E8;
+      box-shadow: 0 0 6px rgba(79, 216, 232, 0.55);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    @keyframes gridMove {
+      0%   { background-position: center center, center center, 0 0; }
+      100% { background-position: center center, center center, 28px 28px; }
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--silk);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(circle 560px at 15% 0%, rgba(198,255,0,0.13) 0%, rgba(198,255,0,0.04) 60%, transparent 100%),
+        radial-gradient(circle 380px at 85% 90%, rgba(198,255,0,0.06) 0%, transparent 70%),
+        radial-gradient(circle at 1px 1px, rgba(198,255,0,0.09) 2px, transparent 2px);
+      background-size: auto, auto, 28px 28px;
+      background-repeat: no-repeat, no-repeat, repeat;
+      animation: gridMove 30s linear infinite;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 140vw;
+      height: 140vh;
+      background: var(--copper);
+      opacity: 0.016;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      filter: blur(120px);
+      z-index: -1;
+    }
+
+    button { font-family: var(--sans); cursor: pointer; }
+
+    .hidden { display: none !important; }
+
+    /* ===================== INPUTS (shared) ===================== */
+    input[type="password"],
+    input[type="text"],
+    input[type="number"],
+    select {
+      font-family: var(--mono);
+      font-size: 13.5px;
+      color: var(--silk);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 11px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--copper-dim);
+      box-shadow: 0 0 0 3px rgba(198,255,0,0.07);
+      outline: none;
+    }
+
+    input:focus-visible,
+    select:focus-visible,
+    button:focus-visible {
+      outline: 2px solid var(--copper-bright);
+      outline-offset: 1px;
+    }
+
+    /* ===================== LOGIN SCREEN ===================== */
+    #loginScreen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 380px;
+      padding: 36px 32px 28px;
+      background: rgba(14,18,11,0.88);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 0 60px rgba(198,255,0,0.07), 0 24px 80px rgba(0,0,0,0.55);
+      text-align: center;
+    }
+
+    .login-brand-mark {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      background: #0b0e08;
+      color: var(--copper);
+      border: 2px solid var(--copper);
+      box-shadow: 0 0 14px rgba(198,255,0,0.7), 0 0 40px rgba(198,255,0,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 22px;
+      margin: 0 auto 22px;
+    }
+
+    .login-eyebrow {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--copper-text);
+      margin: 0 0 6px;
+    }
+
+    .login-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      color: var(--silk);
+    }
+
+    .login-subtitle {
+      font-size: 12.5px;
+      color: var(--silk-dim);
+      line-height: 1.65;
+      margin: 0 0 26px;
+    }
+
+    input[type="password"].login-input {
+      width: 100%;
+      font-size: 15px;
+      padding: 13px 14px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 13px 14px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(130deg, var(--copper-dim) 0%, var(--copper) 100%);
+      color: #0B0D08;
+      font-weight: 700;
+      font-size: 14.5px;
+      letter-spacing: 0.01em;
+      transition: filter .15s, transform .1s;
+    }
+
+    .btn-primary:hover  { filter: brightness(1.1); }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; filter: none; transform: none; }
+
+    .login-error {
+      color: var(--required);
+      font-family: var(--mono);
+      font-size: 12px;
+      margin-top: 10px;
+      min-height: 16px;
+    }
+
+    /* ===================== DASHBOARD SHELL ===================== */
+    .dash-shell {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ---- Sidebar ---- */
+    .sidebar {
+      flex: 0 0 var(--sidebar-w);
+      width: var(--sidebar-w);
+      background: rgba(10,13,8,0.92);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 22px 16px 20px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+
+    .brand-mark {
+      flex: 0 0 36px;
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: #0b0e08;
+      color: var(--copper);
+      border: 2px solid var(--copper);
+      box-shadow: 0 0 8px rgba(198,255,0,0.65), 0 0 22px rgba(198,255,0,0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    .brand-text { display: flex; flex-direction: column; line-height: 1.28; overflow: hidden; }
+    .brand-name { font-size: 12.5px; font-weight: 700; color: var(--silk); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-sub  { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--silk-dim); }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--silk-dim);
+      font-size: 13.5px;
+      font-weight: 600;
+      text-align: left;
+      transition: background .14s, color .14s;
+    }
+
+    .tab-btn:hover { background: rgba(198,255,0,0.06); color: var(--silk); }
+
+    .tab-btn.active {
+      background: rgba(198,255,0,0.10);
+      color: var(--copper-text);
+      box-shadow: inset 3px 0 0 var(--copper);
+    }
+
+    .snav-icon {
+      font-size: 15px;
+      width: 22px;
+      text-align: center;
+      flex: 0 0 auto;
+      opacity: 0.75;
+    }
+
+    .tab-btn.active .snav-icon { opacity: 1; }
+
+    .sidebar-footer {
+      padding: 12px 8px;
+      border-top: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+
+    /* ---- Main content ---- */
+    .dash-main {
+      flex: 1;
+      margin-left: var(--sidebar-w);
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .dash-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      background: rgba(9,10,7,0.88);
+      backdrop-filter: blur(12px);
+      z-index: 5;
+    }
+
+    .dash-content {
+      padding: 28px 28px 80px;
+      flex: 1;
+    }
+
+    .status-line {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--silk-dim);
+      min-height: 14px;
+      flex: 1;
+    }
+    .status-line.err { color: var(--required); }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ---- Ghost button ---- */
+    .btn-ghost {
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(28,34,24,0.5);
+      color: var(--silk-dim);
+      font-size: 12.5px;
+      white-space: nowrap;
+      transition: border-color .14s, color .14s, background .14s;
+    }
+    .btn-ghost:hover { border-color: var(--copper-dim); color: var(--silk); background: rgba(198,255,0,0.05); }
+
+    .btn-ghost-sidebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--silk-dim);
+      font-size: 13px;
+      font-weight: 500;
+      text-align: left;
+      transition: background .14s, color .14s, border-color .14s;
+    }
+    .btn-ghost-sidebar:hover { background: rgba(255,77,109,0.08); color: var(--required); border-color: rgba(255,77,109,0.2); }
+
+    /* ===================== PROFIT TAB ===================== */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      padding: 20px 18px 18px;
+      background: rgba(20,24,18,0.7);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      backdrop-filter: blur(6px);
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: var(--copper-dim); }
+
+    .card-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--silk-dim);
+      margin-bottom: 12px;
+    }
+
+    .card-value {
+      font-family: var(--mono);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--copper-text);
+      line-height: 1;
+    }
+
+    .card-value.profit {
+      color: var(--ok);
+      text-shadow: 0 0 22px rgba(110,231,201,0.4);
+    }
+
+    .card.warn-card { border-color: rgba(255,180,84,0.35); }
+    .card.warn-card .card-value { color: var(--warn); }
+    .card-sub { font-size: 11.5px; color: var(--silk-dim); margin-top: 6px; line-height: 1.45; }
+
+    .secondary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+
+    .section-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--copper-dim);
+      margin: 38px 0 14px;
+    }
+
+    .chart { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+
+    .chart-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 110px;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .chart-month { color: var(--silk-dim); }
+
+    .chart-track {
+      height: 18px;
+      background: rgba(28,34,24,0.8);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .chart-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--copper-dim), var(--copper));
+      border-radius: 6px;
+      transition: width 0.65s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 0 0 8px rgba(198,255,0,0.3);
+    }
+
+    .chart-value { text-align: right; color: var(--copper-text); font-weight: 600; }
+
+    /* ===================== TABLES ===================== */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    thead th {
+      text-align: right;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--silk-dim);
+      padding: 12px 14px;
+      background: rgba(22,28,17,0.95);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+    }
+
+    thead th:first-child,
+    tbody td:first-child { text-align: left; }
+
+    tbody td {
+      text-align: right;
+      padding: 10px 14px;
+      border-top: 1px solid rgba(42,54,22,0.6);
+      font-family: var(--mono);
+      vertical-align: middle;
+    }
+
+    tbody tr:hover { background: rgba(198,255,0,0.035); }
+
+    .profit-cell { color: var(--ok); font-weight: 600; }
+    .flagged-cell { color: var(--warn); }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--silk-dim);
+      font-size: 13.5px;
+      font-family: var(--mono);
+    }
+
+    /* ===================== PRICES TAB ===================== */
+    /* กล่องสรุปความพร้อมขายของแต่ละรุ่น — ตรวจรหัสในชีตเทียบกับที่หน้าเว็บลูกค้ารู้จัก */
+    .ready-box {
+      margin: 10px 0 18px;
+      padding: 12px 16px;
+      border-radius: 9px;
+      font-size: 12.5px;
+      line-height: 1.75;
+      border: 1px solid;
+    }
+    .ready-box.ok {
+      border-color: rgba(64, 200, 120, .35);
+      background: rgba(64, 200, 120, .07);
+      color: #6fd99a;
+    }
+    .ready-box.warn {
+      border-color: rgba(255, 176, 32, .4);
+      background: rgba(255, 176, 32, .07);
+      color: #ffc866;
+    }
+    .ready-box ul { margin: 8px 0 0; padding-left: 20px; }
+    .ready-box li { margin-bottom: 5px; }
+    .ready-box code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, .28);
+    }
+    .ready-hint { color: var(--silk-dim); font-size: 11.5px; }
+
+    .price-group { margin-bottom: 32px; }
+
+    .price-group-header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .price-group-title { font-size: 14px; font-weight: 700; color: var(--copper-text); }
+    .price-group-count { font-family: var(--mono); font-size: 11px; color: var(--silk-dim); }
+
+    .price-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .price-card {
+      background: rgba(20,24,18,0.65);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(4px);
+      transition: border-color .15s, opacity .15s;
+    }
+
+    .price-card:hover { border-color: var(--copper-dim); }
+    .price-card.is-hidden { opacity: 0.48; }
+
+    .price-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .price-card-header input[type="text"] {
+      width: 100%;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 6px 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+    }
+
+    .price-card-header input[type="text"]:hover,
+    .price-card-header input[type="text"]:focus-visible {
+      background: var(--panel-2);
+      border-color: var(--line);
+    }
+
+    .price-card-fields {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .price-card-cost-avg {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--silk-dim);
+      margin-bottom: 12px;
+    }
+    .price-card-cost-avg strong { color: var(--copper-text); font-weight: 600; }
+
+    .price-card-field label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--silk-dim);
+      margin-bottom: 4px;
+    }
+
+    .price-card-field input[type="number"] { width: 100%; text-align: left; }
+
+    .price-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(28,34,24,0.9);
+    }
+
+    .price-card-code { font-family: var(--mono); font-size: 10px; color: var(--silk-dim); }
+    /* รหัสที่หน้าเว็บจับคู่ไม่เจอ — ตัวเลือกนี้จะถูกซ่อนจากลูกค้าเงียบๆ ต้องเตะตาให้เห็นตั้งแต่ในการ์ด */
+    .price-card-code.is-orphan { color: #ffc866; }
+
+    .price-card-desc { margin-bottom: 12px; }
+    .price-card-desc textarea {
+      width: 100%;
+      resize: vertical;
+      min-height: 42px;
+      padding: 7px 9px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--silk);
+      font-family: var(--sans);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .price-card-desc textarea:focus-visible {
+      outline: 2px solid var(--copper-dim);
+      outline-offset: 1px;
+    }
+
+    .row-del-btn {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--silk-dim);
+      cursor: pointer;
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .row-del-btn:hover { color: #ff8fa3; border-color: rgba(255,77,109,.5); }
+    /* ชั้นยืนยัน — กดครั้งแรกปุ่มเปลี่ยนเป็นสีแดงถามย้ำ กดซ้ำถึงจะลบจริง */
+    .row-del-btn.armed {
+      background: rgba(255,77,109,.14);
+      border-color: rgba(255,77,109,.6);
+      color: #ff8fa3;
+      font-weight: 700;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+      vertical-align: middle;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      transition: background .15s;
+    }
+
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      top: 2px;
+      background: var(--silk-dim);
+      border-radius: 50%;
+      transition: transform .15s, background .15s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider { background: rgba(198,255,0,0.15); border-color: var(--copper); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); background: var(--copper); }
+
+    .row-save-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--silk-dim);
+      font-size: 11.5px;
+    }
+    .row-save-btn:not(:disabled) { border-color: var(--copper); color: var(--copper-text); cursor: pointer; }
+    .row-save-btn:disabled { cursor: default; opacity: 0.5; }
+
+    .row-status { font-size: 10.5px; color: var(--silk-dim); display: block; margin-top: 3px; }
+    .row-status.ok  { color: var(--ok); }
+    .row-status.err { color: var(--required); }
+
+    /* ===================== ORDERS TAB ===================== */
+    .orders-toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .orders-toolbar input[type="text"] { flex: 1; min-width: 220px; }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-family: var(--mono);
+      white-space: nowrap;
+      background: rgba(28,34,24,0.8);
+      border: 1px solid var(--line);
+      color: var(--silk-dim);
+    }
+    .status-badge.confirmed { color: var(--ok);       border-color: rgba(110,231,201,0.4); background: rgba(110,231,201,0.05); }
+    .status-badge.flagged   { color: var(--warn);     border-color: rgba(255,180,84,0.4);  background: rgba(255,180,84,0.05); }
+    .status-badge.cancelled { color: var(--required); border-color: rgba(255,77,109,0.4);  background: rgba(255,77,109,0.05); }
+
+    .order-row { cursor: pointer; }
+
+    /* ---------- แท็บโค้ดส่วนลด ---------- */
+    .disc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    .disc-card {
+      background: rgba(20, 24, 18, 0.65);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(4px);
+      transition: border-color .15s, opacity .15s;
+    }
+
+    .disc-card.is-off { opacity: .55; }
+    .disc-card.is-new { border-color: var(--copper-dim); border-style: dashed; }
+
+    .disc-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .disc-code {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--copper-text);
+      letter-spacing: .04em;
+    }
+
+    .disc-fields {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .disc-field.wide { grid-column: 1 / -1; }
+
+    .disc-field label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--silk-dim);
+      margin-bottom: 4px;
+    }
+
+    .disc-field input[type="text"],
+    .disc-field input[type="number"],
+    .disc-field input[type="date"] {
+      width: 100%;
+      padding: 7px 9px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      color: var(--silk);
+      font-family: var(--mono);
+      font-size: 12.5px;
+    }
+
+    .disc-field input:focus-visible {
+      outline: none;
+      border-color: var(--copper);
+    }
+
+    .disc-usage {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--silk-dim);
+      margin-bottom: 10px;
+    }
+    .disc-usage strong { color: var(--copper-text); font-weight: 600; }
+
+    .disc-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: var(--silk-dim);
+      cursor: pointer;
+      user-select: none;
+    }
+    .disc-toggle input { accent-color: var(--copper); width: 15px; height: 15px; }
+
+    .disc-card-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(28, 34, 24, 0.9);
+    }
+
+    .btn-sm {
+      padding: 7px 13px;
+      border-radius: 8px;
+      font-family: var(--sans);
+      font-size: 12.5px;
+      font-weight: 600;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--silk);
+      cursor: pointer;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .btn-sm:hover { border-color: var(--copper-dim); color: var(--copper-text); }
+    .btn-sm:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-sm.accent {
+      background: linear-gradient(130deg, var(--copper-dim) 0%, var(--copper) 100%);
+      border-color: transparent;
+      color: #0B0D08;
+    }
+    .btn-sm.accent:hover { filter: brightness(1.1); color: #0B0D08; }
+
+    .btn-sm.danger { color: var(--required); border-color: rgba(255, 77, 109, .35); }
+    .btn-sm.danger:hover { background: rgba(255, 77, 109, .12); border-color: var(--required); color: var(--required); }
+
+    /* ---------- โซนอันตราย (ลบออเดอร์) ---------- */
+    .danger-zone {
+      border: 1px solid rgba(255, 77, 109, .35);
+      border-radius: 10px;
+      background: rgba(255, 77, 109, .05);
+      padding: 14px 16px;
+    }
+
+    .danger-zone-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--required);
+      margin-bottom: 6px;
+    }
+
+    .danger-zone-note {
+      font-size: 12px;
+      line-height: 1.65;
+      color: var(--silk-dim);
+      margin: 0 0 12px;
+    }
+
+    .danger-zone-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .danger-zone-row input[type="text"] {
+      flex: 1 1 200px;
+      min-width: 0;
+      padding: 8px 11px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--silk);
+      font-family: var(--mono);
+      font-size: 12.5px;
+    }
+    .danger-zone-row input[type="text"]:focus-visible { outline: none; border-color: var(--required); }
+
+    .order-detail-row td {
+      text-align: left;
+      background: var(--panel);
+      border-top: none;
+      padding: 0;
+    }
+
+    .order-detail {
+      padding: 20px;
+      border-top: 1px dashed rgba(92,110,26,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .status-callout {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      border-radius: 10px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+    }
+    .status-callout.confirmed { border-color: rgba(110,231,201,0.4); background: rgba(110,231,201,0.05); }
+    .status-callout.flagged   { border-color: rgba(255,180,84,0.4);  background: rgba(255,180,84,0.05); }
+    .status-callout.cancelled { border-color: rgba(255,77,109,0.4);  background: rgba(255,77,109,0.05); }
+
+    .status-callout-label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--silk-dim);
+      white-space: nowrap;
+    }
+    .status-callout-text { font-size: 13.5px; font-weight: 600; color: var(--silk); flex: 1; }
+    .status-callout.confirmed .status-callout-text { color: var(--ok); }
+    .status-callout.flagged   .status-callout-text { color: var(--warn); }
+    .status-callout.cancelled .status-callout-text { color: var(--required); }
+
+    .slip-link-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: var(--panel);
+      border: 1px solid var(--copper-dim);
+      color: var(--copper-text) !important;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .slip-link-btn:hover { border-color: var(--copper); }
+
+    .detail-section {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px 16px;
+      background: rgba(28,34,24,0.45);
+    }
+
+    .detail-section-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--copper-text);
+      margin-bottom: 12px;
+      cursor: default;
+    }
+
+    .detail-section.collapsible { padding: 0; }
+    .detail-section.collapsible summary.detail-section-title {
+      padding: 14px 16px;
+      margin-bottom: 0;
+      cursor: pointer;
+      list-style: none;
+      color: var(--silk-dim);
+    }
+    .detail-section.collapsible summary.detail-section-title::-webkit-details-marker { display: none; }
+    .detail-section.collapsible summary.detail-section-title::before  { content: "▸ "; }
+    .detail-section.collapsible[open] summary.detail-section-title::before { content: "▾ "; }
+    .detail-section.collapsible[open] .order-detail-grid { padding: 0 16px 16px; }
+
+    .order-summary-block {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--silk);
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: var(--panel);
+      border-radius: 6px;
+      padding: 12px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .order-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px 20px;
+    }
+
+    .order-detail-field { font-size: 12.5px; }
+    .order-detail-field .k { color: var(--silk-dim); font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 3px; }
+    .order-detail-field .v { color: var(--silk); word-break: break-word; }
+    .order-detail-field .v a { color: var(--copper-text); }
+
+    .status-editor {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+    .status-editor select { flex: 0 0 auto; }
+    .status-editor input[type="text"] { flex: 1; min-width: 200px; }
+
+    /* ===================== MOBILE ===================== */
+    @media (max-width: 768px) {
+      :root { --sidebar-w: 0px; }
+
+      .sidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+        scrollbar-width: none;
+      }
+      .sidebar::-webkit-scrollbar { display: none; }
+
+      .sidebar-brand {
+        padding: 10px 12px;
+        border-bottom: none;
+        border-right: 1px solid var(--line);
+        flex: 0 0 auto;
+      }
+      .brand-text { display: none; }
+
+      .sidebar-nav {
+        flex-direction: row;
+        padding: 6px 8px;
+        gap: 3px;
+        overflow-x: auto;
+        flex: 1;
+        scrollbar-width: none;
+      }
+      .sidebar-nav::-webkit-scrollbar { display: none; }
+
+      .tab-btn {
+        flex: 0 0 auto;
+        padding: 8px 14px;
+        font-size: 12.5px;
+        box-shadow: none;
+        white-space: nowrap;
+        border-radius: 8px;
+      }
+      .tab-btn.active { box-shadow: none; }
+      .snav-icon { display: none; }
+
+      .sidebar-footer {
+        border-top: none;
+        border-left: 1px solid var(--line);
+        padding: 6px 8px;
+        flex: 0 0 auto;
+      }
+      .btn-ghost-sidebar {
+        padding: 8px 12px;
+        font-size: 12.5px;
+        width: auto;
+        white-space: nowrap;
+      }
+
+      .dash-shell { flex-direction: column; }
+      .dash-main  { margin-left: 0; }
+
+      .dash-topbar { padding: 10px 14px; }
+      .dash-content { padding: 16px 14px 60px; }
+
+      .chart-row { grid-template-columns: 55px 1fr 80px; font-size: 11px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ===== Login screen ===== -->
+  <div id="loginScreen">
+    <div class="login-box">
+      <div class="login-brand-mark">M</div>
+      <p class="login-eyebrow">Controller Mod by Mosu</p>
+      <h1 class="login-title">Admin Dashboard</h1>
+      <p class="login-subtitle">กรอกรหัสผ่านแอดมินเพื่อเข้าใช้งาน<br>ห้ามแชร์หน้านี้หรือรหัสผ่านให้ใคร</p>
+      <input type="password" id="passwordInput" class="login-input" placeholder="รหัสผ่านแอดมิน" autocomplete="off">
+      <button type="button" class="btn-primary" id="loginBtn">เข้าสู่ระบบ</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
+  <!-- ===== Dashboard ===== -->
+  <div id="dashboardScreen" class="hidden">
+    <div class="dash-shell">
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-mark">M</div>
+          <div class="brand-text">
+            <span class="brand-name">Controller Mod</span>
+            <span class="brand-sub">by Mosu · Admin</span>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <button type="button" class="tab-btn active" data-tab="profit">
+            <span class="snav-icon">◈</span>
+            <span>กำไร</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="prices">
+            <span class="snav-icon">◧</span>
+            <span>ราคา / สินค้า</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="orders">
+            <span class="snav-icon">◫</span>
+            <span>ออเดอร์</span>
+          </button>
+          <button type="button" class="tab-btn" data-tab="discounts">
+            <span class="snav-icon">◆</span>
+            <span>โค้ดส่วนลด</span>
+          </button>
+        </nav>
+        <div class="sidebar-footer">
+          <button type="button" class="btn-ghost-sidebar" id="logoutBtn">
+            <span>↩</span>
+            <span>ออกจากระบบ</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <main class="dash-main">
+        <div class="dash-topbar">
+          <div class="status-line" id="statusLine"></div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <button type="button" class="theme-toggle-switch" id="themeToggleBtn" aria-label="สลับธีม">
+              <span class="theme-toggle-dot"></span>
+            </button>
+            <button type="button" class="btn-ghost" id="refreshBtn">↻ รีเฟรช</button>
+          </div>
+        </div>
+        <div class="dash-content">
+          <div class="panel active" id="panel-profit"></div>
+          <div class="panel" id="panel-prices"></div>
+          <div class="panel" id="panel-orders"></div>
+          <div class="panel" id="panel-discounts"></div>
+        </div>
+      </main>
+
+    </div>
+  </div>
+
+  <script>
+    // ใส่ URL Apps Script Web App เดียวกับที่ใช้ในหน้าเว็บลูกค้า (index.html) — ต้อง deploy โค้ด .gs เวอร์ชันที่มี
+    // action=getDashboard / getAdminPrices / updatePrice / getAdminOrders / updateOrderStatus แล้วก่อน หน้านี้
+    // ถึงจะใช้งานได้ (ดูคำแนะนำการ deploy ที่คอมเมนต์บนสุดของไฟล์ apps-script-order-receiver.gs)
+    // ---------- ธีม (ใช้คีย์ 'mosuTheme' ร่วมกับ index.html / my-orders.html) ----------
+    (function () {
+      var THEME_KEY = 'mosuTheme';
+      var body = document.body;
+
+      var saved = null;
+      try { saved = localStorage.getItem(THEME_KEY); } catch (e) { /* โหมดส่วนตัวอ่านไม่ได้ ใช้ธีมเริ่มต้น */ }
+      if (saved === 'carbon') body.classList.add('carbon-theme');
+
+      document.getElementById('themeToggleBtn').addEventListener('click', function () {
+        var next = body.classList.contains('carbon-theme') ? 'dark' : 'carbon';
+        body.classList.toggle('carbon-theme', next === 'carbon');
+        try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* เขียนไม่ได้ ก็แค่ไม่จำข้ามหน้า */ }
+      });
+    })();
+
+    const ORDER_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw02swDWMJ4e-xb1CT4zzRZ27CYtfQVGbULpVMkTyLOTDO2ysgKG9ijBUum7wy2oQ4/exec';
+
+    const PASSWORD_SESSION_KEY = 'mosuDashboardPassword';
+
+    const GROUP_META = {
+      pcb: '01 · บอร์ด PCB',
+      paddles: '02 · ปุ่มหลัง (จำนวน)',
+      paddleType: '02 · ปุ่มหลัง (รูปแบบ)',
+      triggerBumper: '03 · Trigger/Bumper',
+      faceButtons: '03 · Face Buttons',
+      stickModule: '04 · Stick Module',
+      ps4shell: '05 · กรอบ PS4',
+      'pcb-ps5': '01 · บอร์ด PCB (PS5)',
+      'paddles-ps5': '02 · ปุ่มหลัง จำนวน (PS5)',
+      'paddleType-ps5': '02 · ปุ่มหลัง รูปแบบ (PS5)',
+      'triggerBumper-ps5': '03 · Trigger/Bumper (PS5)',
+      'faceButtons-ps5': '03 · Face Buttons (PS5)',
+      'stickModule-ps5': '04 · Stick Module (PS5)',
+      'ps5shell': '05 · กรอบ PS5'
+    };
+    // ชีต Prices ไม่มีคอลัมน์ "แพลตฟอร์ม" — แยก PS4/PS5 ด้วยการตั้งรหัสกลุ่มคนละตัว
+    // (PS4 ใช้รหัสเดิมทั้งหมด, PS5 ลงท้าย -ps5) เพิ่มกลุ่มใหม่ได้เรื่อยๆ โดยไม่ต้องแก้ชีต
+    const GROUP_ORDER = [
+      'pcb', 'paddles', 'paddleType', 'triggerBumper', 'faceButtons', 'stickModule', 'ps4shell',
+      'pcb-ps5', 'paddles-ps5', 'paddleType-ps5', 'triggerBumper-ps5', 'faceButtons-ps5', 'stickModule-ps5', 'ps5shell'
+    ];
+
+    // กลุ่มไหนเป็นของแพลตฟอร์มไหน ใช้แบ่งหัวข้อใหญ่ในแท็บราคา
+    function groupPlatform(group) {
+      return (group === 'ps5shell' || /-ps5$/.test(group)) ? 'ps5' : 'ps4';
+    }
+
+    // รหัสตัวเลือกที่หน้าเว็บลูกค้ารู้จัก — index.html มีปุ่ม/ตัวเลือกของแต่ละช่องตายตัวอยู่แล้ว
+    // ชีต Prices เป็นตัวกำหนดแค่ ชื่อที่แสดง / ราคา / สต๊อก / เปิด-ปิดขาย ของแต่ละช่อง ไม่ได้กำหนดว่ามีช่องอะไรบ้าง
+    // ถ้าตั้งรหัสไม่ตรงรายการนี้ หน้าเว็บจะจับคู่ไม่เจอแล้วซ่อนตัวเลือกนั้นทิ้งไปเงียบๆ
+    // (เคยพลาดมาแล้วตอนเปิดขาย PS5 รอบแรก — ตั้งเป็น hyperstrikeps5 แทน hyperstrike แล้วราคาไม่ขึ้นทั้งหน้า)
+    const OPTION_SLOTS = {
+      pcb: [['suiovoi', 'SuiOvOi'], ['hyperstrike', 'Hyperstrike']],
+      paddles: [['none', 'ไม่เพิ่มปุ่ม'], ['one', '1 ปุ่ม'], ['two', '2 ปุ่ม']],
+      triggerBumper: [['none', 'ไม่เปลี่ยนของเดิม'], ['clicky', 'Trigger/Bumper Clicky']],
+      faceButtons: [['dpad', 'ไม่เปลี่ยนของเดิม'], ['fullface', 'Full Face / D-PAD Clicky']],
+      stickModule: [['alps', 'ALPS'], ['he', 'HE'], ['tmr', 'TMR']],
+      ps4shell: [['withController', 'ลูกค้าส่งจอยมาให้ทำ'], ['noController', 'ไม่มีจอย — ร้านจัดหากรอบให้']]
+    };
+
+    // กลุ่ม PS5 ใช้ชุดรหัสเดียวกับ PS4 (ชื่อกลุ่มแยกกันอยู่แล้ว รหัสซ้ำกันได้ไม่ชนกัน)
+    // คืน null = กลุ่มที่วาดตัวเลือกจากชีตโดยตรง (paddleType) ตั้งรหัสอะไรก็ได้
+    function slotsForGroup(group) {
+      if (group === 'ps5shell') return OPTION_SLOTS.ps4shell;
+      return OPTION_SLOTS[group.replace(/-ps5$/, '')] || null;
+    }
+
+    const PLATFORM_META = {
+      ps4: { label: 'PS4 · DualShock 4', sub: 'ตัวเลือกที่ลูกค้าเห็นอยู่ตอนนี้' },
+      ps5: { label: 'PS5 · DualSense', sub: 'ตัวเลือกที่ลูกค้าเห็นอยู่ตอนนี้ (ช่องไหนไม่มีแถวในชีต หน้าเว็บจะซ่อนช่องนั้น)' }
+    };
+
+    // ช่องที่ลูกค้า "ต้องเลือก" ถึงจะสั่งซื้อได้ — ถ้าช่องไหนไม่เหลือตัวเลือกที่ใช้ได้ รุ่นนั้นขายไม่ได้เลย
+    // ต้องตรงกับ CUSTOM_REQUIRED_GROUPS / CUSTOM_PS5_REQUIRED_GROUPS ในไฟล์ .gs
+    const REQUIRED_GROUPS = {
+      ps4: ['pcb', 'paddles', 'triggerBumper', 'faceButtons', 'stickModule', 'ps4shell'],
+      ps5: ['pcb-ps5', 'paddles-ps5', 'triggerBumper-ps5', 'faceButtons-ps5', 'stickModule-ps5', 'ps5shell']
+    };
+
+    // ช่อง 03 ในหน้าเว็บเป็น dropdown เดียวแต่กินของ 2 กลุ่ม — 1 ตัวเลือก = trigger + face ต้องมีครบคู่
+    const TRIGGER_FACE_COMBOS = [
+      ['none', 'dpad', 'ไม่เปลี่ยนของเดิม'],
+      ['clicky', 'dpad', 'Trigger/Bumper Clicky'],
+      ['clicky', 'fullface', 'Trigger/Bumper + Full Face']
+    ];
+
+    // ตรวจว่ารุ่นนี้พร้อมขายจริงไหม เทียบสิ่งที่อยู่ในชีตกับสิ่งที่หน้าเว็บลูกค้ารู้จัก (OPTION_SLOTS)
+    // คืน problems = ช่องที่ลูกค้าเลือกไม่ได้, orphans = แถวที่ตั้งรหัสผิดจนหน้าเว็บมองไม่เห็น
+    function auditPlatform(plat, byGroup) {
+      const problems = [];
+      const orphans = [];
+      // warnings = ขายได้อยู่ แต่ข้อมูลดูผิดปกติจนน่าจะกรอกพลาด (ไม่บล็อกการขาย แค่เตือน)
+      const warnings = [];
+
+      Object.keys(byGroup).forEach(function (g) {
+        if (groupPlatform(g) !== plat) return;
+        const slots = slotsForGroup(g);
+        if (!slots) return; // paddleType วาดตัวเลือกจากชีตโดยตรง ตั้งรหัสอะไรก็ได้
+        const valid = slots.map(function (s) { return s[0]; });
+        byGroup[g].forEach(function (it) {
+          if (valid.indexOf(it.option) === -1) orphans.push({ group: g, option: it.option, expect: valid });
+        });
+      });
+
+      // ตัวเลือกที่ "ใช้ได้จริง" = เปิดขายอยู่ + รหัสตรงกับที่หน้าเว็บรู้จัก
+      function liveCodes(g) {
+        const slots = slotsForGroup(g);
+        const valid = slots ? slots.map(function (s) { return s[0]; }) : null;
+        return (byGroup[g] || []).filter(function (it) {
+          return it.visible !== false && (!valid || valid.indexOf(it.option) !== -1);
+        }).map(function (it) { return it.option; });
+      }
+
+      REQUIRED_GROUPS[plat].forEach(function (g) {
+        if (g.indexOf('triggerBumper') === 0 || g.indexOf('faceButtons') === 0) return; // ตรวจรวมด้านล่าง
+        if (liveCodes(g).length === 0) {
+          problems.push((GROUP_META[g] || g) + ' — ไม่เหลือตัวเลือกที่ลูกค้าเลือกได้');
+        }
+      });
+
+      const sfx = (plat === 'ps5') ? '-ps5' : '';
+      const trig = liveCodes('triggerBumper' + sfx);
+      const face = liveCodes('faceButtons' + sfx);
+      const okCombos = TRIGGER_FACE_COMBOS.filter(function (c) {
+        return trig.indexOf(c[0]) !== -1 && face.indexOf(c[1]) !== -1;
+      });
+      if (okCombos.length === 0) {
+        problems.push('03 · Trigger/Bumper + Face Buttons — ไม่เหลือตัวเลือกที่ลูกค้าเลือกได้ (1 ตัวเลือกต้องมีครบทั้ง trigger และ face)');
+      }
+
+      // ช่องกรอบ (05) สลับกันบ่อย เพราะรหัสมองจากฝั่ง "ลูกค้ามีจอยไหม" แต่คนกรอกมักคิดเป็น "ร้านขายกรอบเท่าไหร่"
+      // withController = ลูกค้าส่งจอยมาเอง ร้านไม่ต้องหากรอบ → ต้องเป็น ฿0 เสมอ
+      // noController   = ร้านจัดหากรอบให้ (ช่องเลือกสีจะโผล่) → ต้องมีราคา ไม่งั้นแจกกรอบฟรี
+      const shellGroup = (plat === 'ps5') ? 'ps5shell' : 'ps4shell';
+      const shellRows = byGroup[shellGroup] || [];
+      const shellBy = {};
+      shellRows.forEach(function (it) { shellBy[it.option] = it; });
+      const withCtrl = shellBy.withController;
+      const noCtrl = shellBy.noController;
+      if (withCtrl && withCtrl.price > 0) {
+        warnings.push('<code>' + escapeHtml(shellGroup) + ' / withController</code> ตั้งราคาไว้ ' + currency(withCtrl.price) +
+          ' แต่รหัสนี้แปลว่า "ลูกค้าส่งจอยมาเอง" ร้านไม่ต้องหากรอบ — ควรเป็น ฿0 ' +
+          '<span class="ready-hint">(ถ้าตั้งใจคิดค่ากรอบ ให้ย้ายราคาไปไว้ที่ noController แทน)</span>');
+      }
+      if (noCtrl && noCtrl.price === 0 && noCtrl.visible !== false) {
+        warnings.push('<code>' + escapeHtml(shellGroup) + ' / noController</code> ราคา ฿0 แต่รหัสนี้แปลว่า "ร้านจัดหากรอบให้" — ' +
+          'ตอนนี้ลูกค้าได้กรอบฟรี ตรวจว่าตั้งใจหรือเปล่า');
+      }
+
+      return { problems: problems, orphans: orphans, warnings: warnings, combos: okCombos };
+    }
+
+    function renderReadiness(plat, byGroup) {
+      const a = auditPlatform(plat, byGroup);
+      const blocked = a.problems.length || a.orphans.length;
+      let h = '';
+
+      if (!blocked) {
+        h += '<div class="ready-box ok">✓ พร้อมขาย — ทุกช่องมีตัวเลือกที่ลูกค้าเลือกได้ครบ</div>';
+      } else {
+        h += '<div class="ready-box warn"><strong>⚠ ยังขายรุ่นนี้ไม่ได้</strong><ul>';
+        a.problems.forEach(function (p) { h += '<li>' + escapeHtml(p) + '</li>'; });
+        a.orphans.forEach(function (o) {
+          h += '<li>รหัส <code>' + escapeHtml(o.option) + '</code> ในกลุ่ม <code>' + escapeHtml(o.group) +
+            '</code> หน้าเว็บไม่รู้จัก จึงถูกซ่อนทิ้ง — ต้องเปลี่ยนเป็น ' +
+            o.expect.map(function (v) { return '<code>' + escapeHtml(v) + '</code>'; }).join(' หรือ ') +
+            ' <span class="ready-hint">(รหัสตัวเลือกแก้ในชีต Prices คอลัมน์ B โดยตรงเท่านั้น แดชบอร์ดแก้ให้ไม่ได้)</span></li>';
+        });
+        h += '</ul></div>';
+      }
+
+      // เตือนแยกกล่อง — ขายได้อยู่ แต่ตัวเลขน่าจะกรอกสลับช่อง (ข้อความเป็น HTML ที่ escape มาแล้วจากต้นทาง)
+      if (a.warnings.length) {
+        h += '<div class="ready-box warn"><strong>⚠ ตรวจสอบข้อมูลตรงนี้อีกที</strong><ul>';
+        a.warnings.forEach(function (w) { h += '<li>' + w + '</li>'; });
+        h += '</ul></div>';
+      }
+      return h;
+    }
+
+    const STATUS_PRESETS = [
+      'รอลูกค้าชำระเงิน',
+      '✓ ยืนยันแล้ว (ตรวจสอบด้วยตนเองโดยร้าน)',
+      '⚠ ต้องตรวจสอบเพิ่มเติม',
+      '✕ ยกเลิกคำสั่งซื้อ'
+    ];
+
+    // ชีต Orders ของร้านที่ใช้งานมาก่อนหน้านี้อาจตั้งชื่อคอลัมน์ไว้ต่างจากที่โค้ดฝั่งเซิร์ฟเวอร์คาดไว้ตอนนี้
+    // (เช่น "รออกค้าชำระเงิน ( PAYMENT CONFIRM )" แทน "สถานะการชำระเงิน", "EMAIL" แทน "อีเมล") — ใส่ชื่อที่เป็น
+    // ไปได้ไว้ทุกแบบ แล้วให้ pickField() ลองไล่หาให้ กันตัวเลข/สถานะขึ้น "ไม่มีข้อมูล" ทั้งที่จริงๆ มีอยู่แล้ว
+    const FIELD_ALIASES = {
+      total: ['ยอดรวมสุทธิ', 'ยอดรวม (บาท)', 'ยอดรวม'],
+      subtotal: ['ราคารวมก่อนลด'],
+      discountCode: ['โค้ดส่วนลด'],
+      discountStatus: ['สถานะโค้ด'],
+      discountAmount: ['ส่วนลด (บาท)', 'ราคาที่ลด'],
+      status: ['สถานะการชำระเงิน', 'รออกค้าชำระเงิน ( PAYMENT CONFIRM )', 'รออกค้าชำระเงิน (PAYMENT CONFIRM)'],
+      email: ['อีเมล', 'EMAIL', 'Email'],
+      address: ['ที่อยู่จัดส่ง', 'ที่อยู่'],
+      slipLink: ['ลิงก์สลิปโอนเงิน', 'หลักฐานการโอนเงิน'],
+      summary: ['รายการ'],
+      priceCheckNote: ['ผลตรวจสอบราคา'],
+      cost: ['ต้นทุนรวม (บาท)'],
+      profit: ['กำไรสุทธิ (บาท)'],
+      slipVerify: ['ผลตรวจสอบสลิปอัตโนมัติ (SlipOK)', 'ผลตรวจสอบสลิปอัตโนมัติ (SLIPOK)'],
+      transRef: ['เลขอ้างอิงธนาคาร (transRef)', 'เลขอ้างอิงธนาคาร (TRANSREF)'],
+      bankRoute: ['ธนาคารต้นทาง → ปลายทาง'],
+      senderName: ['ชื่อผู้โอน (จากสลิป)'],
+      slipAmount: ['ยอดเงินในสลิป (จากธนาคาร)'],
+      transTime: ['วันเวลาที่โอนจริง (จากธนาคาร)'],
+      orderCode: ['เลขที่คำสั่งซื้อ'],
+      date: ['วันที่/เวลา']
+    };
+
+    function pickField(order, logicalName) {
+      const candidates = FIELD_ALIASES[logicalName] || [logicalName];
+      for (const c of candidates) {
+        if (order[c] !== undefined && order[c] !== '') return order[c];
+      }
+      return '';
+    }
+
+    function pickFieldKey(order, logicalName) {
+      const candidates = FIELD_ALIASES[logicalName] || [logicalName];
+      for (const c of candidates) {
+        if (order[c] !== undefined) return c;
+      }
+      return null;
+    }
+
+    const loginScreen = document.getElementById('loginScreen');
+    const dashboardScreen = document.getElementById('dashboardScreen');
+    const passwordInput = document.getElementById('passwordInput');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+    const statusLine = document.getElementById('statusLine');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    const state = { password: '', activeTab: 'profit', loaded: {} };
+
+    function currency(n) {
+      const v = Math.round(Number(n) || 0);
+      return '฿' + v.toLocaleString('th-TH');
+    }
+
+    function pct(numerator, denominator) {
+      if (!denominator) return '—';
+      return (numerator / denominator * 100).toFixed(1) + '%';
+    }
+
+    function monthLabel(key) {
+      const parts = key.split('-');
+      const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      const idx = parseInt(parts[1], 10) - 1;
+      return (monthNames[idx] || parts[1]) + ' ' + parts[0];
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    async function apiGet(action, extraParams) {
+      const params = new URLSearchParams(Object.assign({ action: action, password: state.password }, extraParams || {}));
+      const res = await fetch(ORDER_WEBHOOK_URL + '?' + params.toString());
+      return res.json();
+    }
+
+    async function apiPost(action, payload) {
+      const res = await fetch(ORDER_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(Object.assign({ action: action, password: state.password }, payload))
+      });
+      return res.json();
+    }
+
+    // ========== Tabs ==========
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () { switchTab(btn.dataset.tab); });
+    });
+
+    function switchTab(tab) {
+      state.activeTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
+      document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('active', p.id === 'panel-' + tab); });
+      if (!state.loaded[tab]) loadTab(tab);
+    }
+
+    function loadTab(tab) {
+      if (tab === 'profit') return loadProfitTab();
+      if (tab === 'prices') return loadPricesTab();
+      if (tab === 'orders') return loadOrdersTab();
+      if (tab === 'discounts') return loadDiscountsTab();
+    }
+
+    function setStatus(text, isErr) {
+      statusLine.textContent = text;
+      statusLine.classList.toggle('err', !!isErr);
+    }
+
+    // ========== Tab: กำไร ==========
+    async function loadProfitTab() {
+      const panel = document.getElementById('panel-profit');
+      setStatus('กำลังโหลดข้อมูลกำไร...');
+      try {
+        const result = await apiGet('getDashboard');
+        if (result.result !== 'success') { onAuthFail(result.message); return; }
+        state.loaded.profit = true;
+        renderProfitTab(panel, result.dashboard);
+        setStatus('อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH') + (result.dashboard.timezone ? ' (เขตเวลา ' + result.dashboard.timezone + ')' : ''));
+      } catch (err) {
+        setStatus('⚠ เชื่อมต่อไม่สำเร็จ: ' + err.message, true);
+      }
+    }
+
+    function renderProfitTab(panel, data) {
+      const t = data.totals;
+      const months = data.months || [];
+      let html = '';
+
+      html += '<div class="cards">';
+      html += card('ยอดขาย (ยืนยันแล้ว)', currency(t.revenueConfirmed), t.ordersConfirmed + ' ออเดอร์');
+      html += card('ต้นทุนรวม', currency(t.costConfirmed), '');
+      html += card('กำไรสุทธิ', currency(t.profitConfirmed), 'มาร์จิ้น ' + pct(t.profitConfirmed, t.revenueConfirmed), true);
+      html += '</div>';
+
+      html += '<div class="secondary-cards">';
+      html += card('รอลูกค้าชำระเงิน / รอตรวจสอบ', currency(t.revenuePending), t.ordersPending + ' ออเดอร์ — ยังไม่นับเป็นกำไรจริง');
+      if (t.ordersFlagged > 0) {
+        html += '<div class="card warn-card"><div class="card-label">⚠ ต้องตรวจสอบด่วน</div>' +
+          '<div class="card-value">' + t.ordersFlagged + ' ออเดอร์</div>' +
+          '<div class="card-sub">แจ้งโอนแล้วแต่ตรวจสลิปไม่ผ่าน (' + currency(t.revenueFlagged) + ')</div></div>';
+      }
+      if (t.ordersCancelled > 0) {
+        html += card('✕ ยกเลิกแล้ว', t.ordersCancelled + ' ออเดอร์', currency(t.revenueCancelled) + ' — ไม่นับยอดขาย');
+      }
+      html += '</div>';
+
+      if (months.length === 0) {
+        html += '<div class="empty-state">ยังไม่มีคำสั่งซื้อในชีต Orders</div>';
+        panel.innerHTML = html;
+        return;
+      }
+
+      const maxProfit = Math.max.apply(null, months.map(function (m) { return m.profitConfirmed; }).concat([1]));
+      html += '<div class="section-title">กำไรรายเดือน · ยืนยันชำระเงินแล้วเท่านั้น</div>';
+      html += '<div class="chart">';
+      months.forEach(function (m) {
+        const widthPct = Math.max(2, (m.profitConfirmed / maxProfit) * 100);
+        html += '<div class="chart-row">' +
+          '<span class="chart-month">' + monthLabel(m.month) + '</span>' +
+          '<span class="chart-track"><span class="chart-bar" style="width:' + widthPct + '%"></span></span>' +
+          '<span class="chart-value">' + currency(m.profitConfirmed) + '</span>' +
+          '</div>';
+      });
+      html += '</div>';
+
+      html += '<div class="section-title">รายละเอียดรายเดือน</div>';
+      html += '<div class="table-wrap"><table><thead><tr>' +
+        '<th>เดือน</th><th>ออเดอร์</th><th>ยอดขาย</th><th>ต้นทุน</th><th>กำไร</th><th>มาร์จิ้น</th>' +
+        '<th>รอชำระ</th><th>ต้องตรวจสอบ</th>' +
+        '</tr></thead><tbody>';
+      months.forEach(function (m) {
+        html += '<tr>' +
+          '<td>' + monthLabel(m.month) + '</td>' +
+          '<td>' + m.ordersConfirmed + '</td>' +
+          '<td>' + currency(m.revenueConfirmed) + '</td>' +
+          '<td>' + currency(m.costConfirmed) + '</td>' +
+          '<td class="profit-cell">' + currency(m.profitConfirmed) + '</td>' +
+          '<td>' + pct(m.profitConfirmed, m.revenueConfirmed) + '</td>' +
+          '<td>' + m.ordersPending + ' (' + currency(m.revenuePending) + ')</td>' +
+          '<td class="' + (m.ordersFlagged > 0 ? 'flagged-cell' : '') + '">' + (m.ordersFlagged > 0 ? m.ordersFlagged : '—') + '</td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div>';
+
+      panel.innerHTML = html;
+    }
+
+    function card(label, value, sub, isProfit) {
+      return '<div class="card"><div class="card-label">' + label + '</div>' +
+        '<div class="card-value' + (isProfit ? ' profit' : '') + '">' + value + '</div>' +
+        (sub ? '<div class="card-sub">' + sub + '</div>' : '') +
+        '</div>';
+    }
+
+    // ========== Tab: ราคา/สินค้า ==========
+    async function loadPricesTab() {
+      const panel = document.getElementById('panel-prices');
+      setStatus('กำลังโหลดข้อมูลราคา...');
+      try {
+        const result = await apiGet('getAdminPrices');
+        if (result.result !== 'success') { onAuthFail(result.message); return; }
+        state.loaded.prices = true;
+        renderPricesTab(panel, result.items);
+        setStatus('โหลดราคาแล้ว ' + result.items.length + ' รายการ — แก้ค่าที่ต้องการแล้วกด "บันทึก" ทีละแถว');
+      } catch (err) {
+        setStatus('⚠ เชื่อมต่อไม่สำเร็จ: ' + err.message, true);
+      }
+    }
+
+    function renderPricesTab(panel, items) {
+      items = items || [];
+
+      const byGroup = {};
+      items.forEach(function (it) {
+        if (!byGroup[it.group]) byGroup[it.group] = [];
+        byGroup[it.group].push(it);
+      });
+
+      // กลุ่มที่ไม่อยู่ใน GROUP_ORDER (indexOf = -1) ให้ไปต่อท้าย ไม่ใช่ขึ้นก่อนสุด
+      const rank = function (g) { const i = GROUP_ORDER.indexOf(g); return i === -1 ? 999 : i; };
+      const groupKeys = Object.keys(byGroup).sort(function (a, b) { return rank(a) - rank(b); });
+
+      let html = renderAddPriceCard();
+
+      // แบ่งเป็นหัวข้อใหญ่ PS4 / PS5 เพื่อไม่ให้ตัวเลือกสองรุ่นปนกัน
+      ['ps4', 'ps5'].forEach(function (plat) {
+        const keys = groupKeys.filter(function (g) { return groupPlatform(g) === plat; });
+        const count = keys.reduce(function (n, g) { return n + byGroup[g].length; }, 0);
+        const meta = PLATFORM_META[plat];
+
+        html += '<div class="section-title" style="margin-top:26px;">' + escapeHtml(meta.label) +
+          ' <span style="font-family:var(--mono);font-size:11px;color:var(--silk-dim);font-weight:400;">· ' +
+          count + ' ตัวเลือก · ' + escapeHtml(meta.sub) + '</span></div>';
+
+        html += renderReadiness(plat, byGroup);
+
+        if (keys.length === 0) {
+          html += '<div class="empty-state">ยังไม่มีตัวเลือกของรุ่นนี้ในชีต Prices — เพิ่มได้จากการ์ด "เพิ่มตัวเลือกใหม่" ด้านบน</div>';
+          return;
+        }
+        html += renderPriceGroups(keys, byGroup);
+      });
+
+      panel.innerHTML = html;
+      wireAddPriceCard(panel);
+      wirePriceCards(panel);
+    }
+
+    function renderPriceGroups(groupKeys, byGroup) {
+      let html = '';
+      groupKeys.forEach(function (group) {
+        const groupItems = byGroup[group];
+        const hiddenCount = groupItems.filter(function (it) { return !it.visible; }).length;
+        html += '<div class="price-group">' +
+          '<div class="price-group-header">' +
+          '<span class="price-group-title">' + escapeHtml(GROUP_META[group] || group) + '</span>' +
+          '<span class="price-group-count">' + groupItems.length + ' ตัวเลือก' + (hiddenCount ? ' · ปิดขายอยู่ ' + hiddenCount : '') + '</span>' +
+          '</div><div class="price-card-grid">';
+
+        groupItems.forEach(function (it) {
+          const cardId = 'price-card-' + group + '-' + it.option;
+          // ป้ายใต้การ์ดบอก "รหัสนี้หมายถึงช่องไหนในหน้าเว็บ" — กันตั้งชื่อ/ราคาสลับช่องกัน
+          // (เคยพลาดมาแล้วกับ ps5shell: ใส่ราคากรอบไว้ที่ withController ซึ่งแปลว่าลูกค้าส่งจอยมาเอง)
+          const slots = slotsForGroup(group);
+          const slotMeta = slots ? slots.filter(function (s) { return s[0] === it.option; })[0] : null;
+          const isOrphan = !!(slots && !slotMeta);
+          const codeHint = slotMeta ? ' · ' + escapeHtml(slotMeta[1])
+            : (isOrphan ? ' · ⚠ หน้าเว็บไม่รู้จักรหัสนี้' : '');
+          html += '<div class="price-card' + (it.visible ? '' : ' is-hidden') + '" id="' + cardId + '" data-group="' + escapeHtml(group) + '" data-option="' + escapeHtml(it.option) + '">' +
+            '<div class="price-card-header">' +
+            '<input type="text" class="f-label" value="' + escapeHtml(it.label) + '">' +
+            '<label class="toggle-switch" title="เปิด/ปิดขายตัวเลือกนี้"><input type="checkbox" class="f-visible" ' + (it.visible ? 'checked' : '') + '><span class="toggle-slider"></span></label>' +
+            '</div>' +
+            '<div class="price-card-fields">' +
+            '<div class="price-card-field"><label>ราคา (฿)</label><input type="number" class="f-price" value="' + it.price + '" step="1"></div>' +
+            '<div class="price-card-field"><label>คงเหลือ</label><input type="number" class="f-stock" value="' + (it.stock === '' ? '' : it.stock) + '" placeholder="ไม่จำกัด" step="1"></div>' +
+            '<div class="price-card-field"><label>ต้นทุนต่ำสุด (฿)</label><input type="number" class="f-cost-min" value="' + it.costMin + '" step="1"></div>' +
+            '<div class="price-card-field"><label>ต้นทุนสูงสุด (฿)</label><input type="number" class="f-cost-max" value="' + it.costMax + '" step="1"></div>' +
+            '</div>' +
+            '<div class="price-card-field price-card-desc"><label>คำอธิบาย (บรรทัดเล็กใต้ชื่อในหน้าเว็บ)</label>' +
+            '<textarea class="f-desc" rows="2" placeholder="เว้นว่าง = ใช้ข้อความเดิมที่เขียนไว้ในหน้าเว็บ">' + escapeHtml(it.desc || '') + '</textarea></div>' +
+            '<div class="price-card-cost-avg">≈ ต้นทุนเฉลี่ยที่ใช้คำนวณกำไร: <strong class="cost-avg-display">' + currency((it.costMin + it.costMax) / 2) + '</strong></div>' +
+            '<div class="price-card-footer">' +
+            '<span class="price-card-code' + (isOrphan ? ' is-orphan' : '') + '">' + escapeHtml(it.option) + codeHint + '</span>' +
+            '<span style="display:flex; align-items:center; gap:8px;"><span class="row-status"></span>' +
+            '<button type="button" class="row-del-btn" title="ลบตัวเลือกนี้ออกจากชีตถาวร">ลบ</button>' +
+            '<button type="button" class="row-save-btn" disabled>บันทึก</button></span>' +
+            '</div>' +
+            '</div>';
+        });
+
+        html += '</div></div>';
+      });
+      return html;
+    }
+
+    // ---- การ์ด "เพิ่มตัวเลือกใหม่" (ใช้สร้างตัวเลือกฝั่ง PS5 เป็นหลัก) ----
+    function renderAddPriceCard() {
+      let opts = '';
+      GROUP_ORDER.forEach(function (g) {
+        opts += '<option value="' + escapeHtml(g) + '">' + escapeHtml(GROUP_META[g] || g) + '</option>';
+      });
+      const selStyle = 'width:100%;padding:7px 9px;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;color:var(--silk);font-family:var(--sans);font-size:12.5px;';
+      return '<div class="section-title">เพิ่มตัวเลือกใหม่</div>' +
+        '<div class="disc-grid"><div class="disc-card is-new" id="addPriceCard">' +
+          '<div class="disc-fields">' +
+            '<div class="disc-field wide"><label>กลุ่ม</label>' +
+              '<select class="p-group" style="' + selStyle + '">' + opts + '</select></div>' +
+            // รหัสตัวเลือกต้องตรงกับที่หน้าเว็บรู้จัก จึงให้เลือกจากรายการแทนพิมพ์เอง (ดู OPTION_SLOTS)
+            // เหลือช่องพิมพ์เองไว้เฉพาะกลุ่มที่วาดตัวเลือกจากชีตโดยตรง เช่น paddleType
+            '<div class="disc-field"><label>รหัสตัวเลือก</label>' +
+              '<select class="p-option-select" style="' + selStyle + '"></select>' +
+              '<input type="text" class="p-option" placeholder="เช่น dsepaddle" hidden></div>' +
+            '<div class="disc-field"><label>ชื่อที่แสดง</label><input type="text" class="p-label" placeholder="เช่น Hyperstrike PS5"></div>' +
+            '<div class="disc-field"><label>ราคา (฿)</label><input type="number" class="p-price" step="1" placeholder="0"></div>' +
+            '<div class="disc-field"><label>ต้นทุน (฿)</label><input type="number" class="p-cost" step="1" placeholder="0"></div>' +
+            '<div class="disc-field wide"><label>คำอธิบาย (ไม่บังคับ)</label><input type="text" class="p-desc" placeholder="บรรทัดเล็กใต้ชื่อในหน้าเว็บ — เว้นว่างได้"></div>' +
+          '</div>' +
+          '<label class="disc-toggle"><input type="checkbox" class="p-visible" checked> เปิดขายทันที</label>' +
+          '<div class="disc-card-foot">' +
+            '<span class="row-status p-msg"></span>' +
+            '<button type="button" class="btn-sm accent p-add-btn">+ เพิ่มตัวเลือก</button>' +
+          '</div>' +
+        '</div></div>';
+    }
+
+    function wireAddPriceCard(panel) {
+      const card = panel.querySelector('#addPriceCard');
+      if (!card) return;
+      const btn = card.querySelector('.p-add-btn');
+      const msg = card.querySelector('.p-msg');
+      const optionInput = card.querySelector('.p-option');
+      const optionSelect = card.querySelector('.p-option-select');
+      const groupSelect = card.querySelector('.p-group');
+
+      // รหัสตัวเลือกถูกเอาไปจับคู่กับโค้ดหน้าเว็บ จึงกันช่องว่าง/อักขระแปลกตั้งแต่ตอนพิมพ์
+      optionInput.addEventListener('input', function () {
+        optionInput.value = optionInput.value.replace(/[^A-Za-z0-9_-]/g, '');
+      });
+
+      // สลับระหว่าง "เลือกจากรายการ" (กลุ่มที่หน้าเว็บมีช่องตายตัว) กับ "พิมพ์เอง" (กลุ่มที่วาดจากชีต)
+      function syncOptionField() {
+        const slots = slotsForGroup(groupSelect.value);
+        if (!slots) {
+          optionSelect.hidden = true;
+          optionInput.hidden = false;
+          return;
+        }
+        optionSelect.innerHTML = slots.map(function (s) {
+          return '<option value="' + escapeHtml(s[0]) + '">' + escapeHtml(s[0]) + ' — ' + escapeHtml(s[1]) + '</option>';
+        }).join('');
+        optionSelect.hidden = false;
+        optionInput.hidden = true;
+      }
+      groupSelect.addEventListener('change', syncOptionField);
+      syncOptionField();
+
+      btn.addEventListener('click', async function () {
+        const payload = {
+          group: groupSelect.value,
+          option: optionSelect.hidden ? optionInput.value.trim() : optionSelect.value,
+          label: card.querySelector('.p-label').value.trim(),
+          price: Number(card.querySelector('.p-price').value) || 0,
+          costMin: Number(card.querySelector('.p-cost').value) || 0,
+          visible: card.querySelector('.p-visible').checked,
+          desc: card.querySelector('.p-desc').value.trim()
+        };
+        if (!payload.option || !payload.label) {
+          msg.textContent = 'ต้องกรอกรหัสตัวเลือกและชื่อที่แสดง';
+          msg.className = 'row-status p-msg err';
+          return;
+        }
+
+        btn.disabled = true;
+        msg.textContent = 'กำลังเพิ่ม...';
+        msg.className = 'row-status p-msg';
+        try {
+          const result = await apiPost('addPrice', payload);
+          if (result.result === 'success') {
+            msg.textContent = 'เพิ่มแล้ว ✓';
+            msg.className = 'row-status p-msg ok';
+            state.loaded.prices = false;
+            setTimeout(loadPricesTab, 600);
+          } else {
+            msg.textContent = '⚠ ' + (result.message || 'เพิ่มไม่สำเร็จ');
+            msg.className = 'row-status p-msg err';
+          }
+        } catch (err) {
+          msg.textContent = '⚠ เชื่อมต่อไม่สำเร็จ';
+          msg.className = 'row-status p-msg err';
+        }
+        btn.disabled = false;
+      });
+    }
+
+    function wirePriceCards(panel) {
+      // Wire up dirty-tracking + save per card
+      panel.querySelectorAll('.price-card[data-group]').forEach(function (cardEl) {
+        const saveBtn = cardEl.querySelector('.row-save-btn');
+        const rowStatus = cardEl.querySelector('.row-status');
+        const visibleToggle = cardEl.querySelector('.f-visible');
+        const costMinInput = cardEl.querySelector('.f-cost-min');
+        const costMaxInput = cardEl.querySelector('.f-cost-max');
+        const costAvgDisplay = cardEl.querySelector('.cost-avg-display');
+        // รวม textarea (ช่องคำอธิบาย) เข้าไปด้วย ไม่งั้นแก้คำอธิบายแล้วปุ่มบันทึกไม่ติด
+        const inputs = cardEl.querySelectorAll('input, textarea');
+        inputs.forEach(function (inp) {
+          inp.addEventListener('input', function () { saveBtn.disabled = false; rowStatus.textContent = ''; rowStatus.className = 'row-status'; });
+          inp.addEventListener('change', function () { saveBtn.disabled = false; });
+        });
+        visibleToggle.addEventListener('change', function () {
+          cardEl.classList.toggle('is-hidden', !visibleToggle.checked);
+        });
+        [costMinInput, costMaxInput].forEach(function (inp) {
+          inp.addEventListener('input', function () {
+            const min = Number(costMinInput.value) || 0;
+            const max = Number(costMaxInput.value) || 0;
+            costAvgDisplay.textContent = currency((min + max) / 2);
+          });
+        });
+        saveBtn.addEventListener('click', function () { savePriceRow(cardEl, saveBtn, rowStatus); });
+
+        // ลบ = ลบแถวออกจากชีตถาวร กู้คืนไม่ได้ จึงบังคับกด 2 ครั้ง (ครั้งแรกแค่ "ง้าง" ปุ่มไว้)
+        // ปลดง้างอัตโนมัติใน 4 วินาที กันกดค้างไว้แล้วเผลอไปกดโดนทีหลัง
+        const delBtn = cardEl.querySelector('.row-del-btn');
+        if (delBtn) {
+          let armTimer = null;
+          const disarm = function () {
+            delBtn.classList.remove('armed');
+            delBtn.textContent = 'ลบ';
+            if (armTimer) { clearTimeout(armTimer); armTimer = null; }
+          };
+          delBtn.addEventListener('click', function () {
+            if (!delBtn.classList.contains('armed')) {
+              delBtn.classList.add('armed');
+              delBtn.textContent = 'ยืนยันลบ?';
+              armTimer = setTimeout(disarm, 4000);
+              return;
+            }
+            disarm();
+            deletePriceRow(cardEl, delBtn, saveBtn, rowStatus);
+          });
+        }
+      });
+    }
+
+    async function deletePriceRow(row, delBtn, saveBtn, rowStatus) {
+      delBtn.disabled = true;
+      saveBtn.disabled = true;
+      rowStatus.textContent = 'กำลังลบ...';
+      rowStatus.className = 'row-status';
+      try {
+        const result = await apiPost('deletePrice', { group: row.dataset.group, option: row.dataset.option });
+        if (result.result === 'success') {
+          rowStatus.textContent = 'ลบแล้ว ✓';
+          rowStatus.className = 'row-status ok';
+          state.loaded.prices = false;
+          setTimeout(loadPricesTab, 600);
+        } else {
+          rowStatus.textContent = '⚠ ' + (result.message || 'ลบไม่สำเร็จ');
+          rowStatus.className = 'row-status err';
+          delBtn.disabled = false;
+        }
+      } catch (err) {
+        rowStatus.textContent = '⚠ เชื่อมต่อไม่สำเร็จ';
+        rowStatus.className = 'row-status err';
+        delBtn.disabled = false;
+      }
+    }
+
+    async function savePriceRow(row, saveBtn, rowStatus) {
+      const group = row.dataset.group;
+      const option = row.dataset.option;
+      const stockRaw = row.querySelector('.f-stock').value;
+      const payload = {
+        group: group,
+        option: option,
+        label: row.querySelector('.f-label').value.trim(),
+        price: Number(row.querySelector('.f-price').value) || 0,
+        costMin: Number(row.querySelector('.f-cost-min').value) || 0,
+        costMax: Number(row.querySelector('.f-cost-max').value) || 0,
+        stock: stockRaw === '' ? '' : Number(stockRaw),
+        visible: row.querySelector('.f-visible').checked,
+        desc: row.querySelector('.f-desc').value.trim()
+      };
+
+      saveBtn.disabled = true;
+      rowStatus.textContent = 'กำลังบันทึก...';
+      rowStatus.className = 'row-status';
+
+      try {
+        const result = await apiPost('updatePrice', payload);
+        if (result.result === 'success') {
+          rowStatus.textContent = 'บันทึกแล้ว ✓';
+          rowStatus.className = 'row-status ok';
+        } else {
+          rowStatus.textContent = '⚠ ' + (result.message || 'บันทึกไม่สำเร็จ');
+          rowStatus.className = 'row-status err';
+          saveBtn.disabled = false;
+        }
+      } catch (err) {
+        rowStatus.textContent = '⚠ เชื่อมต่อไม่สำเร็จ';
+        rowStatus.className = 'row-status err';
+        saveBtn.disabled = false;
+      }
+    }
+
+    // ========== Tab: ออเดอร์ ==========
+    let ordersCache = [];
+
+    async function loadOrdersTab() {
+      const panel = document.getElementById('panel-orders');
+      setStatus('กำลังโหลดรายการคำสั่งซื้อ...');
+      try {
+        const result = await apiGet('getAdminOrders', { limit: 300 });
+        if (result.result !== 'success') { onAuthFail(result.message); return; }
+        state.loaded.orders = true;
+        ordersCache = result.orders || [];
+        renderOrdersTab(panel, ordersCache);
+        setStatus('โหลดคำสั่งซื้อล่าสุด ' + ordersCache.length + ' รายการ');
+      } catch (err) {
+        setStatus('⚠ เชื่อมต่อไม่สำเร็จ: ' + err.message, true);
+      }
+    }
+
+    function statusBadgeClass(status) {
+      status = (status || '').toString();
+      if (status.indexOf('✓') === 0) return 'confirmed';
+      if (status.indexOf('⚠') === 0) return 'flagged';
+      if (status.indexOf('✕') === 0) return 'cancelled';
+      return '';
+    }
+
+    function renderOrdersTab(panel, orders) {
+      let html = '<div class="orders-toolbar">' +
+        '<input type="text" id="orderSearch" placeholder="ค้นหาเลขที่คำสั่งซื้อ / อีเมล / รายการ...">' +
+        '</div>';
+
+      if (!orders || orders.length === 0) {
+        html += '<div class="empty-state">ยังไม่มีคำสั่งซื้อในชีต Orders</div>';
+        panel.innerHTML = html;
+        return;
+      }
+
+      html += '<div class="table-wrap"><table id="ordersTable"><thead><tr>' +
+        '<th>วันที่/เวลา</th><th>เลขที่คำสั่งซื้อ</th><th>ยอดรวมสุทธิ</th><th>สถานะ</th><th>อีเมล</th>' +
+        '</tr></thead><tbody id="ordersTableBody"></tbody></table></div>';
+
+      panel.innerHTML = html;
+      renderOrderRows(orders);
+
+      document.getElementById('orderSearch').addEventListener('input', function (e) {
+        const q = e.target.value.trim().toLowerCase();
+        if (!q) { renderOrderRows(orders); return; }
+        const filtered = orders.filter(function (o) {
+          return pickField(o, 'orderCode').toString().toLowerCase().indexOf(q) !== -1 ||
+            pickField(o, 'email').toString().toLowerCase().indexOf(q) !== -1 ||
+            pickField(o, 'summary').toString().toLowerCase().indexOf(q) !== -1;
+        });
+        renderOrderRows(filtered);
+      });
+    }
+
+    function renderOrderRows(orders) {
+      const tbody = document.getElementById('ordersTableBody');
+      if (!tbody) return;
+
+      if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--silk-dim);">ไม่พบรายการที่ค้นหา</td></tr>';
+        return;
+      }
+
+      let html = '';
+      orders.forEach(function (o, idx) {
+        const statusText = pickField(o, 'status');
+        const badgeClass = statusBadgeClass(statusText);
+        html += '<tr class="order-row" data-idx="' + idx + '">' +
+          '<td style="text-align:left;">' + escapeHtml(pickField(o, 'date')) + '</td>' +
+          '<td style="text-align:left; color:var(--copper-text);">' + escapeHtml(pickField(o, 'orderCode')) + '</td>' +
+          '<td>' + currency(pickField(o, 'total')) + '</td>' +
+          '<td style="text-align:left;"><span class="status-badge ' + badgeClass + '">' + escapeHtml(statusText || 'ไม่มีข้อมูลสถานะ') + '</span></td>' +
+          '<td style="text-align:left;">' + escapeHtml(pickField(o, 'email')) + '</td>' +
+          '</tr>' +
+          '<tr class="order-detail-row hidden" data-idx="' + idx + '"><td colspan="5"></td></tr>';
+      });
+      tbody.innerHTML = html;
+
+      tbody.querySelectorAll('.order-row').forEach(function (row) {
+        row.addEventListener('click', function () {
+          const idx = row.dataset.idx;
+          const detailRow = tbody.querySelector('.order-detail-row[data-idx="' + idx + '"]');
+          const isHidden = detailRow.classList.contains('hidden');
+          tbody.querySelectorAll('.order-detail-row').forEach(function (r) { r.classList.add('hidden'); });
+          if (isHidden) {
+            detailRow.querySelector('td').innerHTML = buildOrderDetailHtml(orders[idx]);
+            wireOrderDetail(detailRow, orders[idx]);
+            detailRow.classList.remove('hidden');
+          }
+        });
+      });
+    }
+
+    function field(label, value) {
+      return '<div class="order-detail-field"><span class="k">' + escapeHtml(label) + '</span><span class="v">' + (value || '<span style="color:var(--silk-dim)">—</span>') + '</span></div>';
+    }
+
+    function buildOrderDetailHtml(order) {
+      const statusText = pickField(order, 'status');
+      const badgeClass = statusBadgeClass(statusText);
+      const slipLink = pickField(order, 'slipLink');
+      const priceCheckNote = pickField(order, 'priceCheckNote');
+
+      let html = '<div class="order-detail">';
+
+      // ---- แถบสถานะเด่นด้านบนสุด ----
+      html += '<div class="status-callout ' + badgeClass + '">' +
+        '<span class="status-callout-label">สถานะการชำระเงิน</span>' +
+        '<span class="status-callout-text">' + escapeHtml(statusText || 'ไม่มีข้อมูลสถานะ') + '</span>' +
+        (slipLink ? '<a class="slip-link-btn" href="' + escapeHtml(slipLink) + '" target="_blank" rel="noopener">📎 เปิดดูสลิป ↗</a>' : '') +
+        '</div>';
+
+      if (priceCheckNote) {
+        html += '<div class="status-callout flagged" style="margin-top:8px;">' +
+          '<span class="status-callout-label">⚠ ผลตรวจสอบราคา</span>' +
+          '<span class="status-callout-text">' + escapeHtml(priceCheckNote) + '</span></div>';
+      }
+
+      // ---- ส่วน: รายการที่สั่ง ----
+      html += '<div class="detail-section"><div class="detail-section-title">📦 รายการที่สั่ง</div>' +
+        '<pre class="order-summary-block">' + escapeHtml(pickField(order, 'summary')) + '</pre></div>';
+
+      // ---- ส่วน: ยอดเงิน ----
+      html += '<div class="detail-section"><div class="detail-section-title">💰 ยอดเงิน</div><div class="order-detail-grid">' +
+        field('ราคารวมก่อนลด', currency(pickField(order, 'subtotal'))) +
+        field('โค้ดส่วนลด', escapeHtml(pickField(order, 'discountCode')) + (pickField(order, 'discountStatus') ? ' — ' + escapeHtml(pickField(order, 'discountStatus')) : '')) +
+        field('ส่วนลด', currency(pickField(order, 'discountAmount'))) +
+        field('ต้นทุนรวม', currency(pickField(order, 'cost'))) +
+        field('กำไรสุทธิ', '<span style="color:var(--ok); font-weight:600;">' + currency(pickField(order, 'profit')) + '</span>') +
+        field('ยอดรวมสุทธิ', '<span style="color:var(--copper-text); font-weight:700;">' + currency(pickField(order, 'total')) + '</span>') +
+        '</div></div>';
+
+      // ---- ส่วน: ลูกค้า ----
+      html += '<div class="detail-section"><div class="detail-section-title">👤 ลูกค้า</div><div class="order-detail-grid">' +
+        field('อีเมล', escapeHtml(pickField(order, 'email'))) +
+        field('ที่อยู่จัดส่ง', escapeHtml(pickField(order, 'address'))) +
+        '</div></div>';
+
+      // ---- ส่วน: รายละเอียดตรวจสอบสลิป (ยุบไว้ก่อน ไม่ค่อยได้ใช้บ่อย) ----
+      const usedKeys = ['total', 'subtotal', 'discountCode', 'discountStatus', 'discountAmount', 'status', 'email',
+        'address', 'slipLink', 'summary', 'priceCheckNote', 'cost', 'profit', 'orderCode', 'date',
+        'slipVerify', 'transRef', 'bankRoute', 'senderName', 'slipAmount', 'transTime'];
+      const usedRealKeys = usedKeys.map(function (k) { return pickFieldKey(order, k); }).filter(Boolean);
+
+      let slipDetailHtml = '<div class="order-detail-grid">' +
+        field('ผลตรวจสอบสลิปอัตโนมัติ (SlipOK)', escapeHtml(pickField(order, 'slipVerify'))) +
+        field('เลขอ้างอิงธนาคาร', escapeHtml(pickField(order, 'transRef'))) +
+        field('ธนาคารต้นทาง → ปลายทาง', escapeHtml(pickField(order, 'bankRoute'))) +
+        field('ชื่อผู้โอน (จากสลิป)', escapeHtml(pickField(order, 'senderName'))) +
+        field('ยอดเงินในสลิป (จากธนาคาร)', escapeHtml(pickField(order, 'slipAmount'))) +
+        field('วันเวลาที่โอนจริง (จากธนาคาร)', escapeHtml(pickField(order, 'transTime')));
+
+      // ฟิลด์อื่นๆ ที่ไม่รู้จัก (คอลัมน์ที่ร้านเพิ่มเองในชีต) โชว์ต่อท้ายไว้เผื่อ ไม่ให้ข้อมูลหายไปเงียบๆ
+      Object.keys(order).forEach(function (key) {
+        if (usedRealKeys.indexOf(key) !== -1) return;
+        if (!order[key]) return;
+        slipDetailHtml += field(key, escapeHtml(order[key]));
+      });
+      slipDetailHtml += '</div>';
+
+      html += '<details class="detail-section collapsible"><summary class="detail-section-title">🔍 รายละเอียดการตรวจสอบสลิป (SlipOK)</summary>' + slipDetailHtml + '</details>';
+
+      // ---- ตัวแก้สถานะ ----
+      html += '<div class="status-editor">' +
+        '<select class="status-preset-select">' +
+        STATUS_PRESETS.map(function (s) { return '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>'; }).join('') +
+        '<option value="__custom__">อื่นๆ (พิมพ์เอง)...</option>' +
+        '</select>' +
+        '<input type="text" class="status-custom-input hidden" placeholder="พิมพ์สถานะเอง...">' +
+        '<button type="button" class="btn-primary status-save-btn" style="width:auto; padding:8px 16px;">บันทึกสถานะ</button>' +
+        '<span class="row-status status-save-msg"></span>' +
+        '</div>';
+
+      // ---- โซนอันตราย: ลบออเดอร์ถาวร ----
+      const delCode = pickField(order, 'orderCode').toString();
+      html += '<div class="danger-zone">' +
+        '<div class="danger-zone-title">⚠ ลบคำสั่งซื้อนี้ถาวร</div>' +
+        '<p class="danger-zone-note">' +
+          'ลบแล้วแถวนี้จะหายจากชีต Orders และยอดขาย/กำไรจะเปลี่ยนตาม — กู้จากหน้านี้ไม่ได้ ' +
+          '(กู้ได้ทางเดียวคือ File → Version history ของ Google Sheets)<br>' +
+          'ถ้าแค่อยากยกเลิกออเดอร์ ให้เปลี่ยน "สถานะ" เป็นยกเลิกด้านบนแทน จะเก็บประวัติไว้ได้' +
+        '</p>' +
+        '<div class="danger-zone-row">' +
+          '<input type="text" class="del-confirm-input" placeholder="พิมพ์ ' + escapeHtml(delCode) + ' เพื่อยืนยัน" autocomplete="off" spellcheck="false">' +
+          '<button type="button" class="btn-sm danger del-order-btn" disabled>ลบถาวร</button>' +
+          '<span class="row-status del-order-msg"></span>' +
+        '</div>' +
+        '</div>';
+
+      html += '</div>';
+      return html;
+    }
+
+    function wireOrderDetail(detailRow, order) {
+      const select = detailRow.querySelector('.status-preset-select');
+      const customInput = detailRow.querySelector('.status-custom-input');
+      const saveBtn = detailRow.querySelector('.status-save-btn');
+      const msg = detailRow.querySelector('.status-save-msg');
+
+      const currentStatus = pickField(order, 'status').toString();
+      if (STATUS_PRESETS.indexOf(currentStatus) !== -1) {
+        select.value = currentStatus;
+      } else {
+        select.value = '__custom__';
+        customInput.value = currentStatus;
+        customInput.classList.remove('hidden');
+      }
+
+      select.addEventListener('change', function () {
+        customInput.classList.toggle('hidden', select.value !== '__custom__');
+      });
+
+      saveBtn.addEventListener('click', async function () {
+        const newStatus = select.value === '__custom__' ? customInput.value.trim() : select.value;
+        if (!newStatus) { msg.textContent = 'กรุณาระบุสถานะ'; msg.className = 'row-status status-save-msg err'; return; }
+
+        saveBtn.disabled = true;
+        msg.textContent = 'กำลังบันทึก...';
+        msg.className = 'row-status status-save-msg';
+
+        try {
+          const result = await apiPost('updateOrderStatus', { orderCode: pickField(order, 'orderCode'), status: newStatus });
+          if (result.result === 'success') {
+            const statusKey = pickFieldKey(order, 'status') || 'สถานะการชำระเงิน';
+            order[statusKey] = newStatus;
+            msg.textContent = 'บันทึกแล้ว ✓ (รีเฟรชแท็บเพื่อดูสถานะล่าสุดในตาราง)';
+            msg.className = 'row-status status-save-msg ok';
+          } else {
+            msg.textContent = '⚠ ' + (result.message || 'บันทึกไม่สำเร็จ');
+            msg.className = 'row-status status-save-msg err';
+          }
+        } catch (err) {
+          msg.textContent = '⚠ เชื่อมต่อไม่สำเร็จ';
+          msg.className = 'row-status status-save-msg err';
+        }
+        saveBtn.disabled = false;
+      });
+
+      // ---- ลบออเดอร์ถาวร ----
+      // ปุ่มจะกดได้ต่อเมื่อพิมพ์เลขที่คำสั่งซื้อให้ตรงเป๊ะ แล้วยังต้องผ่าน confirm() อีกชั้น
+      // ฝั่ง .gs ก็เช็ค confirmCode ซ้ำอีกที กันกรณียิง API ตรงๆ
+      const orderCode = pickField(order, 'orderCode').toString();
+      const delInput = detailRow.querySelector('.del-confirm-input');
+      const delBtn = detailRow.querySelector('.del-order-btn');
+      const delMsg = detailRow.querySelector('.del-order-msg');
+
+      delInput.addEventListener('input', function () {
+        delBtn.disabled = delInput.value.trim() !== orderCode;
+      });
+
+      delBtn.addEventListener('click', async function () {
+        if (delInput.value.trim() !== orderCode) return;
+        if (!confirm('ลบคำสั่งซื้อ ' + orderCode + ' ออกจากชีตถาวร?\n\nกู้จากหน้านี้ไม่ได้ และยอดขาย/กำไรจะเปลี่ยนตาม')) return;
+
+        delBtn.disabled = true;
+        delInput.disabled = true;
+        delMsg.textContent = 'กำลังลบ...';
+        delMsg.className = 'row-status del-order-msg';
+
+        try {
+          const result = await apiPost('deleteOrder', { orderCode: orderCode, confirmCode: delInput.value.trim() });
+          if (result.result === 'success') {
+            delMsg.textContent = 'ลบแล้ว ✓ กำลังโหลดรายการใหม่...';
+            delMsg.className = 'row-status del-order-msg ok';
+            // ยอดกำไรเปลี่ยนตามด้วย เลยต้องล้างแคชแท็บกำไรให้โหลดใหม่รอบหน้า
+            state.loaded.orders = false;
+            state.loaded.profit = false;
+            setTimeout(loadOrdersTab, 700);
+          } else {
+            delMsg.textContent = '⚠ ' + (result.message || 'ลบไม่สำเร็จ');
+            delMsg.className = 'row-status del-order-msg err';
+            delBtn.disabled = false;
+            delInput.disabled = false;
+          }
+        } catch (err) {
+          delMsg.textContent = '⚠ เชื่อมต่อไม่สำเร็จ';
+          delMsg.className = 'row-status del-order-msg err';
+          delBtn.disabled = false;
+          delInput.disabled = false;
+        }
+      });
+    }
+
+    // ========== Tab: โค้ดส่วนลด ==========
+    async function loadDiscountsTab() {
+      const panel = document.getElementById('panel-discounts');
+      setStatus('กำลังโหลดโค้ดส่วนลด...');
+      try {
+        const result = await apiGet('getAdminDiscounts');
+        if (result.result !== 'success') { onAuthFail(result.message); return; }
+        state.loaded.discounts = true;
+        renderDiscountsTab(panel, result.discounts || []);
+        const usable = (result.discounts || []).filter(function (d) { return d.usable; }).length;
+        setStatus('โค้ดทั้งหมด ' + (result.discounts || []).length + ' โค้ด · ใช้ได้อยู่ ' + usable + ' โค้ด');
+      } catch (err) {
+        setStatus('⚠ เชื่อมต่อไม่สำเร็จ: ' + err.message, true);
+      }
+    }
+
+    // ป้ายสถานะของโค้ด — เรียงตามลำดับความสำคัญ ปิดใช้งาน > หมดอายุ > ใช้ครบโควตา
+    function discountBadge(d) {
+      if (!d.active) return '<span class="status-badge cancelled">ปิดใช้งาน</span>';
+      if (d.expired) return '<span class="status-badge flagged">หมดอายุแล้ว</span>';
+      if (d.full)    return '<span class="status-badge flagged">ใช้ครบโควตา</span>';
+      return '<span class="status-badge confirmed">ใช้ได้</span>';
+    }
+
+    function discountFieldsHtml(d) {
+      const percent = d ? d.percent : '';
+      const maxUses = (d && d.maxUses !== null && typeof d.maxUses !== 'undefined') ? d.maxUses : '';
+      const expiry  = d ? (d.expiry || '') : '';
+      const active  = d ? d.active !== false : true;
+      return '<div class="disc-fields">' +
+        '<div class="disc-field"><label>ส่วนลด (%)</label>' +
+          '<input type="number" class="d-percent" min="1" max="100" step="1" value="' + escapeHtml(percent) + '" placeholder="10"></div>' +
+        '<div class="disc-field"><label>จำกัดกี่ครั้ง</label>' +
+          '<input type="number" class="d-maxuses" min="1" step="1" value="' + escapeHtml(maxUses) + '" placeholder="ว่าง = ไม่จำกัด"></div>' +
+        '<div class="disc-field wide"><label>วันหมดอายุ (ว่าง = ไม่หมดอายุ)</label>' +
+          '<input type="date" class="d-expiry" value="' + escapeHtml(expiry) + '"></div>' +
+        '</div>' +
+        '<label class="disc-toggle"><input type="checkbox" class="d-active"' + (active ? ' checked' : '') + '> เปิดใช้งานโค้ดนี้</label>';
+    }
+
+    function renderDiscountsTab(panel, discounts) {
+      let html = '';
+
+      // ---- การ์ดเพิ่มโค้ดใหม่ ----
+      html += '<div class="section-title">เพิ่มโค้ดใหม่</div>';
+      html += '<div class="disc-grid"><div class="disc-card is-new" id="discNewCard">' +
+        '<div class="disc-card-head">' +
+          '<input type="text" class="d-code" placeholder="เช่น SALE20" maxlength="30" ' +
+          'style="font-family:var(--mono);font-size:15px;font-weight:700;text-transform:uppercase;padding:6px 9px;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;color:var(--copper-text);width:100%;">' +
+        '</div>' +
+        discountFieldsHtml(null) +
+        '<div class="disc-card-foot">' +
+          '<span class="row-status disc-msg"></span>' +
+          '<button type="button" class="btn-sm accent disc-add-btn">+ เพิ่มโค้ด</button>' +
+        '</div>' +
+        '</div></div>';
+
+      // ---- รายการโค้ดที่มีอยู่ ----
+      html += '<div class="section-title">โค้ดทั้งหมด (' + discounts.length + ')</div>';
+      if (discounts.length === 0) {
+        html += '<div class="empty-state">ยังไม่มีโค้ดส่วนลดในชีต Discounts</div>';
+        panel.innerHTML = html;
+        wireDiscountNewCard(panel);
+        return;
+      }
+
+      html += '<div class="disc-grid">';
+      discounts.forEach(function (d) {
+        const quota = (d.maxUses === null || typeof d.maxUses === 'undefined')
+          ? 'ไม่จำกัด'
+          : (d.usedCount + ' / ' + d.maxUses);
+        html += '<div class="disc-card' + (d.active ? '' : ' is-off') + '" data-code="' + escapeHtml(d.code) + '">' +
+          '<div class="disc-card-head">' +
+            '<span class="disc-code">' + escapeHtml(d.code) + '</span>' +
+            discountBadge(d) +
+          '</div>' +
+          '<div class="disc-usage">ใช้ไปแล้ว <strong>' + d.usedCount + '</strong> ครั้ง · โควตา ' + escapeHtml(quota) + '</div>' +
+          discountFieldsHtml(d) +
+          '<div class="disc-card-foot">' +
+            '<span class="row-status disc-msg"></span>' +
+            '<span style="display:flex;gap:7px;">' +
+              '<button type="button" class="btn-sm danger disc-del-btn">ลบ</button>' +
+              '<button type="button" class="btn-sm accent disc-save-btn">บันทึก</button>' +
+            '</span>' +
+          '</div>' +
+          '</div>';
+      });
+      html += '</div>';
+
+      panel.innerHTML = html;
+      wireDiscountNewCard(panel);
+      panel.querySelectorAll('.disc-card[data-code]').forEach(wireDiscountCard);
+    }
+
+    // อ่านค่าจากช่องกรอกในการ์ดหนึ่งใบ ให้อยู่ในรูปที่ backend รับได้
+    function readDiscountCard(card) {
+      const maxRaw = card.querySelector('.d-maxuses').value.trim();
+      return {
+        percent: Number(card.querySelector('.d-percent').value),
+        maxUses: maxRaw === '' ? '' : Number(maxRaw),
+        expiry: card.querySelector('.d-expiry').value.trim(),
+        active: card.querySelector('.d-active').checked
+      };
+    }
+
+    function setDiscMsg(card, text, kind) {
+      const el = card.querySelector('.disc-msg');
+      el.textContent = text;
+      el.className = 'row-status disc-msg' + (kind ? ' ' + kind : '');
+    }
+
+    function wireDiscountNewCard(panel) {
+      const card = panel.querySelector('#discNewCard');
+      if (!card) return;
+      const btn = card.querySelector('.disc-add-btn');
+      const codeInput = card.querySelector('.d-code');
+
+      codeInput.addEventListener('input', function () {
+        codeInput.value = codeInput.value.toUpperCase();
+      });
+
+      btn.addEventListener('click', async function () {
+        const code = codeInput.value.trim().toUpperCase();
+        if (!code) { setDiscMsg(card, 'กรุณากรอกโค้ด', 'err'); return; }
+
+        const payload = Object.assign({ code: code }, readDiscountCard(card));
+        btn.disabled = true;
+        setDiscMsg(card, 'กำลังบันทึก...');
+        try {
+          const result = await apiPost('saveDiscount', payload);
+          if (result.result === 'success') {
+            setDiscMsg(card, result.mode === 'updated' ? 'มีโค้ดนี้อยู่แล้ว — อัปเดตให้แทน ✓' : 'เพิ่มแล้ว ✓', 'ok');
+            state.loaded.discounts = false;
+            setTimeout(loadDiscountsTab, 600); // โหลดใหม่ให้เห็นโค้ดที่เพิ่งเพิ่ม
+          } else {
+            setDiscMsg(card, '⚠ ' + (result.message || 'บันทึกไม่สำเร็จ'), 'err');
+          }
+        } catch (err) {
+          setDiscMsg(card, '⚠ เชื่อมต่อไม่สำเร็จ', 'err');
+        }
+        btn.disabled = false;
+      });
+    }
+
+    function wireDiscountCard(card) {
+      const code = card.dataset.code;
+      const saveBtn = card.querySelector('.disc-save-btn');
+      const delBtn = card.querySelector('.disc-del-btn');
+
+      saveBtn.addEventListener('click', async function () {
+        const payload = Object.assign({ code: code }, readDiscountCard(card));
+        saveBtn.disabled = true;
+        setDiscMsg(card, 'กำลังบันทึก...');
+        try {
+          const result = await apiPost('saveDiscount', payload);
+          if (result.result === 'success') {
+            setDiscMsg(card, 'บันทึกแล้ว ✓', 'ok');
+            state.loaded.discounts = false;
+            setTimeout(loadDiscountsTab, 600);
+          } else {
+            setDiscMsg(card, '⚠ ' + (result.message || 'บันทึกไม่สำเร็จ'), 'err');
+          }
+        } catch (err) {
+          setDiscMsg(card, '⚠ เชื่อมต่อไม่สำเร็จ', 'err');
+        }
+        saveBtn.disabled = false;
+      });
+
+      delBtn.addEventListener('click', async function () {
+        if (!confirm('ลบโค้ด "' + code + '" ออกจากชีต Discounts?\n\nลบแล้วกู้จากหน้านี้ไม่ได้ (กู้ได้จาก File > Version history ของ Google Sheets เท่านั้น)')) return;
+
+        delBtn.disabled = true;
+        setDiscMsg(card, 'กำลังลบ...');
+        try {
+          const result = await apiPost('deleteDiscount', { code: code });
+          if (result.result === 'success') {
+            setDiscMsg(card, 'ลบแล้ว ✓', 'ok');
+            card.style.opacity = '.4';
+            state.loaded.discounts = false;
+            setTimeout(loadDiscountsTab, 600);
+          } else {
+            setDiscMsg(card, '⚠ ' + (result.message || 'ลบไม่สำเร็จ'), 'err');
+            delBtn.disabled = false;
+          }
+        } catch (err) {
+          setDiscMsg(card, '⚠ เชื่อมต่อไม่สำเร็จ', 'err');
+          delBtn.disabled = false;
+        }
+      });
+    }
+
+    // ========== Auth / session ==========
+    function onAuthFail(message) {
+      setStatus('');
+      sessionStorage.removeItem(PASSWORD_SESSION_KEY);
+      showLogin(message || 'รหัสผ่านไม่ถูกต้อง หรือเซสชันหมดอายุ');
+    }
+
+    function showDashboard(password, preloadedDashboard) {
+      state.password = password;
+      state.loaded = {};
+      if (preloadedDashboard) {
+        renderProfitTab(document.getElementById('panel-profit'), preloadedDashboard);
+        state.loaded.profit = true;
+        setStatus('อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH') + (preloadedDashboard.timezone ? ' (เขตเวลา ' + preloadedDashboard.timezone + ')' : ''));
+      }
+      loginScreen.classList.add('hidden');
+      dashboardScreen.classList.remove('hidden');
+      switchTab(state.activeTab || 'profit');
+    }
+
+    function showLogin(errorMsg) {
+      dashboardScreen.classList.add('hidden');
+      loginScreen.classList.remove('hidden');
+      loginError.textContent = errorMsg || '';
+      passwordInput.value = '';
+      passwordInput.focus();
+    }
+
+    loginBtn.addEventListener('click', async function () {
+      const pw = passwordInput.value.trim();
+      if (!pw) { loginError.textContent = 'กรุณากรอกรหัสผ่าน'; return; }
+      loginError.textContent = '';
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'กำลังตรวจสอบ…';
+
+      try {
+        const params = new URLSearchParams({ action: 'getDashboard', password: pw });
+        const res = await fetch(ORDER_WEBHOOK_URL + '?' + params.toString());
+        const result = await res.json();
+
+        if (result.result !== 'success') {
+          loginError.textContent = result.message || 'รหัสผ่านไม่ถูกต้อง';
+          return;
+        }
+
+        sessionStorage.setItem(PASSWORD_SESSION_KEY, pw);
+        showDashboard(pw, result.dashboard);
+      } catch (err) {
+        loginError.textContent = 'เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่';
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'เข้าสู่ระบบ';
+      }
+    });
+
+    passwordInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') loginBtn.click(); });
+
+    refreshBtn.addEventListener('click', function () {
+      state.loaded[state.activeTab] = false;
+      loadTab(state.activeTab);
+    });
+
+    logoutBtn.addEventListener('click', function () {
+      sessionStorage.removeItem(PASSWORD_SESSION_KEY);
+      showLogin('');
+    });
+
+    const savedPassword = sessionStorage.getItem(PASSWORD_SESSION_KEY);
+    if (savedPassword) {
+      showDashboard(savedPassword);
+    } else {
+      showLogin('');
+    }
+  </script>
+</body>
+
+</html>

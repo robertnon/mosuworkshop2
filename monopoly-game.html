@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เกมเศรษฐี 4 คน</title>
+<style>
+:root{
+  --brown:#8B4513; --lightblue:#AAE0FA; --pink:#D93A96; --orange:#F7941D;
+  --red:#ED1B24; --yellow:#FEE200; --green:#1FB25A; --darkblue:#0072BB;
+  --bg:#0e2a1c; --panel:#123a26; --panel2:#0c2118; --text:#eef7ef; --muted:#9fc2ac;
+  --accent:#ffcb3d; --danger:#e5484d; --good:#3ecf8e;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:'Segoe UI',Tahoma,'Sarabun',sans-serif; background:linear-gradient(160deg,#0a1f14,#153a26);
+  color:var(--text); min-height:100vh;
+}
+h1,h2,h3{margin:0 0 8px;}
+button{
+  font-family:inherit; cursor:pointer; border:none; border-radius:8px; padding:8px 14px;
+  font-size:14px; font-weight:600; background:var(--accent); color:#2a1c00; transition:.15s;
+}
+button:hover:not(:disabled){filter:brightness(1.1); transform:translateY(-1px);}
+button:disabled{opacity:.35; cursor:not-allowed;}
+button.secondary{background:#2c5c42; color:var(--text);}
+button.danger{background:var(--danger); color:#fff;}
+button.small{padding:4px 8px; font-size:12px; border-radius:6px;}
+input,select{
+  font-family:inherit; padding:8px 10px; border-radius:6px; border:1px solid #2c5c42;
+  background:#0c2118; color:var(--text); font-size:14px;
+}
+
+/* ---------- SETUP SCREEN ---------- */
+#setupScreen{
+  max-width:560px; margin:40px auto; background:var(--panel); border-radius:16px; padding:28px 32px;
+  box-shadow:0 10px 40px rgba(0,0,0,.4);
+}
+#setupScreen p{color:var(--muted); font-size:14px; line-height:1.6;}
+.player-setup-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+.player-setup-row .swatch{width:26px;height:26px;border-radius:50%;flex:0 0 auto;border:2px solid #fff3;}
+.player-setup-row input[type=text]{flex:1;}
+.player-count-toggle{display:flex; gap:8px; margin-bottom:16px;}
+.player-count-toggle button{flex:1;}
+.player-count-toggle button.active{background:var(--good); color:#062;}
+#startBtn{width:100%; margin-top:12px; padding:12px; font-size:16px;}
+
+/* ---------- GAME LAYOUT ---------- */
+#gameScreen{display:none; padding:14px; gap:14px; max-width:1500px; margin:0 auto; align-items:flex-start; flex-wrap:wrap; justify-content:center;}
+#gameScreen.active{display:flex;}
+.board-wrap{flex:0 0 auto; width:min(86vmin,780px);}
+.board{
+  width:100%; aspect-ratio:1/1; display:grid;
+  grid-template-columns:repeat(11,1fr); grid-template-rows:repeat(11,1fr);
+  background:#0a1f14; border:3px solid #2c5c42; border-radius:10px; overflow:hidden;
+  position:relative;
+}
+.cell{
+  position:relative; border:1px solid #1c4430; background:#123a26; overflow:hidden;
+  display:flex; flex-direction:column; font-size:9px; cursor:pointer; user-select:none;
+}
+.cell:hover{background:#194a30;}
+.cell.corner{font-size:10px; align-items:center; justify-content:center; text-align:center; padding:2px; font-weight:700;}
+.cell .name{padding:2px 3px; flex:1; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.15; font-size:8.5px;}
+.cell .price{font-size:8px; color:var(--muted); text-align:center; padding-bottom:2px;}
+.colorbar{position:absolute; background:#888; z-index:1;}
+.cell[data-edge=bottom] .colorbar{bottom:0;left:0;right:0;height:22%;}
+.cell[data-edge=top] .colorbar{top:0;left:0;right:0;height:22%;}
+.cell[data-edge=left] .colorbar{left:0;top:0;bottom:0;width:22%;}
+.cell[data-edge=right] .colorbar{right:0;top:0;bottom:0;width:22%;}
+.cell.owned-mark{outline:2px solid var(--accent); outline-offset:-2px;}
+.tokens{position:absolute; bottom:2px; left:2px; right:2px; display:flex; flex-wrap:wrap; gap:1px; z-index:3;}
+.token{width:10px;height:10px;border-radius:50%; border:1px solid #fff; box-shadow:0 0 2px #000;}
+.house-marks{position:absolute; top:2px; left:2px; display:flex; gap:1px; z-index:2;}
+.house-mark{width:6px;height:6px;background:#2ecc71;border:1px solid #145a2c;}
+.hotel-mark{width:9px;height:7px;background:#e74c3c;border:1px solid #7a1a10;}
+.mortgaged-tag{position:absolute; inset:0; background:repeating-linear-gradient(45deg,rgba(0,0,0,.55) 0 6px,rgba(0,0,0,.35) 6px 12px); display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; color:#ffb3b3; z-index:2;}
+.center-area{
+  grid-row:2/11; grid-column:2/11; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px; padding:10px; background:radial-gradient(circle at 50% 40%,#1c4430,#0e2a1c);
+}
+.center-area h1{font-size:clamp(18px,3vmin,30px); color:var(--accent); letter-spacing:2px; text-shadow:0 2px 6px #000;}
+.dice-row{display:flex; gap:10px; align-items:center;}
+.die{width:44px;height:44px; background:#fff; color:#111; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:26px; box-shadow:0 3px 8px rgba(0,0,0,.4);}
+.turn-banner{font-size:14px; text-align:center; color:var(--text); background:#0009; padding:6px 14px; border-radius:20px;}
+.turn-banner b{color:var(--accent);}
+.center-actions{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:320px;}
+.log-mini{font-size:11px; color:var(--muted); max-width:320px; max-height:70px; overflow-y:auto; text-align:center;}
+
+/* ---------- SIDE PANEL ---------- */
+.side-panel{flex:1 1 340px; min-width:300px; max-width:400px; display:flex; flex-direction:column; gap:10px;}
+.players-panel{display:flex; flex-direction:column; gap:8px;}
+.player-card{
+  background:var(--panel); border-radius:10px; padding:10px 12px; border:2px solid transparent; opacity:.75;
+}
+.player-card.active{border-color:var(--accent); opacity:1; box-shadow:0 0 12px rgba(255,203,61,.3);}
+.player-card.bankrupt{opacity:.35; text-decoration:line-through;}
+.player-card .head{display:flex; align-items:center; gap:8px; margin-bottom:4px;}
+.player-card .swatch{width:16px;height:16px;border-radius:50%;flex:0 0 auto;}
+.player-card .name{font-weight:700; flex:1;}
+.player-card .money{font-weight:700; color:var(--good);}
+.player-card .meta{font-size:11px; color:var(--muted); display:flex; gap:10px;}
+.player-card .props-list{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;}
+.mini-prop{font-size:9px; padding:2px 5px; border-radius:4px; background:#0c2118; border:1px solid #2c5c42; cursor:pointer;}
+.mini-prop:hover{background:#194a30;}
+
+.log-panel{background:var(--panel); border-radius:10px; padding:10px 12px; flex:1; min-height:140px; max-height:260px; overflow-y:auto;}
+.log-panel .entry{font-size:12px; padding:3px 0; border-bottom:1px solid #1c4430; color:var(--muted);}
+.log-panel .entry:last-child{border-bottom:none;}
+.log-panel .entry b{color:var(--text);}
+
+.action-panel{background:var(--panel); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;}
+.action-panel .row{display:flex; gap:6px; flex-wrap:wrap;}
+
+/* ---------- MODAL ---------- */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:center; justify-content:center;
+  z-index:100; padding:16px;
+}
+.modal-overlay.active{display:flex;}
+.modal-box{
+  background:#123a26; border-radius:14px; padding:22px; max-width:460px; width:100%; max-height:86vh; overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.5); border:1px solid #2c5c42;
+}
+.modal-box h2{color:var(--accent); font-size:18px;}
+.modal-box .close-x{float:right; background:none; color:var(--muted); font-size:18px; padding:2px 8px;}
+.rent-table{width:100%; font-size:12px; border-collapse:collapse; margin:10px 0;}
+.rent-table td{padding:3px 6px; border-bottom:1px solid #1c4430;}
+.rent-table tr.current td{color:var(--accent); font-weight:700;}
+.card-modal{text-align:center;}
+.card-modal .card-icon{font-size:40px; margin-bottom:8px;}
+.card-modal .card-text{font-size:16px; line-height:1.6; margin:14px 0; background:#0c2118; padding:16px; border-radius:10px;}
+
+.trade-cols{display:flex; gap:10px;}
+.trade-col{flex:1; background:#0c2118; border-radius:8px; padding:8px; font-size:12px;}
+.trade-col h4{margin:0 0 6px; font-size:12px; color:var(--accent);}
+.trade-col label{display:flex; gap:6px; align-items:center; padding:3px 0; cursor:pointer;}
+
+@media(max-width:900px){
+  .cell .name{font-size:7px;}
+  .cell .price{font-size:6.5px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== SETUP SCREEN ===================== -->
+<div id="setupScreen">
+  <h1 style="color:var(--accent)">🎩 เกมเศรษฐี — เล่นสูงสุด 4 คน</h1>
+  <p>เกมกระดานซื้อขายที่ดินสไตล์คลาสสิก เล่นสลับกันในเครื่องเดียว (hot-seat) ไม่มีระบบประมูล เก็บเงินตั้งต้นคนละ 1,500 บาท</p>
+  <div class="player-count-toggle" id="countToggle"></div>
+  <div id="playerRows"></div>
+  <button id="startBtn">🎲 เริ่มเกม</button>
+</div>
+
+<!-- ===================== GAME SCREEN ===================== -->
+<div id="gameScreen">
+  <div class="board-wrap">
+    <div class="board" id="board">
+      <div class="center-area">
+        <h1>เศรษฐี</h1>
+        <div class="turn-banner" id="turnBanner">—</div>
+        <div class="dice-row">
+          <div class="die" id="die1">-</div>
+          <div class="die" id="die2">-</div>
+        </div>
+        <div class="center-actions" id="centerActions"></div>
+        <div class="log-mini" id="logMini"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-panel">
+    <div class="players-panel" id="playersPanel"></div>
+    <div class="action-panel" id="actionPanel">
+      <div class="row" id="ownedPropsRow"></div>
+      <div class="row">
+        <button class="secondary small" id="tradeBtn">🔄 เสนอแลกเปลี่ยน</button>
+        <button class="secondary small" id="restartBtn">🔁 เริ่มเกมใหม่</button>
+      </div>
+    </div>
+    <div class="log-panel" id="logPanel"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<script>
+'use strict';
+
+/* ===================== BOARD DATA ===================== */
+const GROUP_COLORS = {
+  brown:'#8B4513', lightblue:'#AAE0FA', pink:'#D93A96', orange:'#F7941D',
+  red:'#ED1B24', yellow:'#FEE200', green:'#1FB25A', darkblue:'#0072BB'
+};
+const GROUP_HOUSE_LIMIT_COLOR = {brown:'#000',lightblue:'#000',pink:'#000',orange:'#000',red:'#000',yellow:'#000',green:'#000',darkblue:'#fff'};
+
+const BOARD = [
+/*0*/  {type:'go', name:'GO / ออกเดินทาง'},
+/*1*/  {type:'property', name:'ตรอกบ้านใหม่', group:'brown', price:60, rent:[2,10,30,90,160,250], houseCost:50},
+/*2*/  {type:'chest', name:'กองทุนชุมชน'},
+/*3*/  {type:'property', name:'ซอยเจริญผล', group:'brown', price:60, rent:[4,20,60,180,320,450], houseCost:50},
+/*4*/  {type:'tax', name:'ภาษีเงินได้', amount:200},
+/*5*/  {type:'railroad', name:'สถานีหัวลำโพง', price:200},
+/*6*/  {type:'property', name:'ถนนพระอาทิตย์', group:'lightblue', price:100, rent:[6,30,90,270,400,550], houseCost:50},
+/*7*/  {type:'chance', name:'โชคชะตา'},
+/*8*/  {type:'property', name:'ถนนพระจันทร์', group:'lightblue', price:100, rent:[6,30,90,270,400,550], houseCost:50},
+/*9*/  {type:'property', name:'ถนนสามเสน', group:'lightblue', price:120, rent:[8,40,100,300,450,600], houseCost:50},
+/*10*/ {type:'jail', name:'คุก / เยี่ยมชม'},
+/*11*/ {type:'property', name:'ถนนสาทร', group:'pink', price:140, rent:[10,50,150,450,625,750], houseCost:100},
+/*12*/ {type:'utility', name:'การไฟฟ้านครหลวง', price:150},
+/*13*/ {type:'property', name:'ถนนสีลม', group:'pink', price:140, rent:[10,50,150,450,625,750], houseCost:100},
+/*14*/ {type:'property', name:'ถนนสุรวงศ์', group:'pink', price:160, rent:[12,60,180,500,700,900], houseCost:100},
+/*15*/ {type:'railroad', name:'สถานีบางซื่อ', price:200},
+/*16*/ {type:'property', name:'ถนนพหลโยธิน', group:'orange', price:180, rent:[14,70,200,550,750,950], houseCost:100},
+/*17*/ {type:'chest', name:'กองทุนชุมชน'},
+/*18*/ {type:'property', name:'ถนนวิภาวดีรังสิต', group:'orange', price:180, rent:[14,70,200,550,750,950], houseCost:100},
+/*19*/ {type:'property', name:'ถนนลาดพร้าว', group:'orange', price:200, rent:[16,80,220,600,800,1000], houseCost:100},
+/*20*/ {type:'parking', name:'จอดรถฟรี'},
+/*21*/ {type:'property', name:'ถนนรามคำแหง', group:'red', price:220, rent:[18,90,250,700,875,1050], houseCost:150},
+/*22*/ {type:'chance', name:'โชคชะตา'},
+/*23*/ {type:'property', name:'ถนนศรีนครินทร์', group:'red', price:220, rent:[18,90,250,700,875,1050], houseCost:150},
+/*24*/ {type:'property', name:'ถนนบางนา-ตราด', group:'red', price:240, rent:[20,100,300,750,925,1100], houseCost:150},
+/*25*/ {type:'railroad', name:'สถานีสยาม', price:200},
+/*26*/ {type:'property', name:'ถนนสุขุมวิท', group:'yellow', price:260, rent:[22,110,330,800,975,1150], houseCost:150},
+/*27*/ {type:'property', name:'ถนนเพชรบุรี', group:'yellow', price:260, rent:[22,110,330,800,975,1150], houseCost:150},
+/*28*/ {type:'utility', name:'การประปานครหลวง', price:150},
+/*29*/ {type:'property', name:'ถนนพญาไท', group:'yellow', price:280, rent:[24,120,360,850,1025,1200], houseCost:150},
+/*30*/ {type:'gotojail', name:'ไปคุก'},
+/*31*/ {type:'property', name:'ถนนราชดำริ', group:'green', price:300, rent:[26,130,390,900,1100,1275], houseCost:200},
+/*32*/ {type:'property', name:'ถนนวิทยุ', group:'green', price:300, rent:[26,130,390,900,1100,1275], houseCost:200},
+/*33*/ {type:'chest', name:'กองทุนชุมชน'},
+/*34*/ {type:'property', name:'ถนนเพลินจิต', group:'green', price:320, rent:[28,150,450,1000,1200,1400], houseCost:200},
+/*35*/ {type:'railroad', name:'สถานีอโศก', price:200},
+/*36*/ {type:'chance', name:'โชคชะตา'},
+/*37*/ {type:'property', name:'ถนนเยาวราช', group:'darkblue', price:350, rent:[35,175,500,1100,1300,1500], houseCost:200},
+/*38*/ {type:'tax', name:'ภาษีฟุ่มเฟือย', amount:100},
+/*39*/ {type:'property', name:'ถนนสาทรเหนือ', group:'darkblue', price:400, rent:[50,200,600,1400,1700,2000], houseCost:200},
+];
+BOARD.forEach((s,i)=>{ s.id=i; if(s.price) s.mortgage=Math.round(s.price/2); if(!s.owner) s.owner=null; if(s.type==='property'){s.houses=0;} s.mortgaged=false; });
+
+const RAILROAD_RENT=[25,50,100,200];
+
+const CHANCE_CARDS=[
+  {text:'เดินหน้าไปช่อง GO รับเงิน 200 บาท', fx:(p,g)=>g.moveTo(p,0,true)},
+  {text:'เดินทางไปถนนสาทรเหนือ ถ้าผ่าน GO ระหว่างทางรับ 200 บาท', fx:(p,g)=>g.moveTo(p,39,true)},
+  {text:'เดินทางไปสถานีรถไฟที่ใกล้ที่สุด ถ้ามีเจ้าของจ่ายค่าเช่า 2 เท่า', fx:(p,g)=>g.moveToNearestRailroad(p,true)},
+  {text:'ธนาคารจ่ายเงินปันผลให้คุณ รับ 50 บาท', fx:(p,g)=>g.adjustMoney(p,50)},
+  {text:'ได้รับบัตรออกจากคุกฟรี! เก็บไว้ใช้ภายหลังได้', fx:(p,g)=>{p.jailCards++;}},
+  {text:'ถอยหลัง 3 ช่อง', fx:(p,g)=>g.moveTo(p,(p.pos-3+40)%40,false)},
+  {text:'ไปคุกทันที ห้ามผ่าน GO ห้ามรับเงิน', fx:(p,g)=>g.sendToJail(p)},
+  {text:'ซ่อมแซมทั่วไป: จ่าย 25 บาทต่อบ้าน และ 100 บาทต่อโรงแรม', fx:(p,g)=>g.payRepairs(p,25,100)},
+  {text:'จ่ายค่าปรับ 15 บาท', fx:(p,g)=>g.adjustMoney(p,-15)},
+  {text:'เดินทางไปถนนพระอาทิตย์ ถ้าผ่าน GO รับ 200 บาท', fx:(p,g)=>g.moveTo(p,6,true)},
+  {text:'คุณได้รับเลือกเป็นประธานกรรมการ จ่ายผู้เล่นทุกคนคนละ 50 บาท', fx:(p,g)=>g.payEachPlayer(p,50)},
+  {text:'เดินทางไปการไฟฟ้า/การประปาที่ใกล้ที่สุด', fx:(p,g)=>g.moveToNearestUtility(p)},
+];
+const CHEST_CARDS=[
+  {text:'กองทุนคืนภาษี รับ 20 บาท', fx:(p,g)=>g.adjustMoney(p,20)},
+  {text:'ค่ารักษาพยาบาล จ่าย 100 บาท', fx:(p,g)=>g.adjustMoney(p,-100)},
+  {text:'วันเกิดคุณ! รับของขวัญจากผู้เล่นทุกคนคนละ 10 บาท', fx:(p,g)=>g.collectFromEach(p,10)},
+  {text:'ขายที่ดินได้กำไร รับ 45 บาท', fx:(p,g)=>g.adjustMoney(p,45)},
+  {text:'จ่ายค่าเล่าเรียนบุตร 50 บาท', fx:(p,g)=>g.adjustMoney(p,-50)},
+  {text:'กองทุนช่วยเหลือชุมชน รับ 25 บาท', fx:(p,g)=>g.adjustMoney(p,25)},
+  {text:'ได้รับบัตรออกจากคุกฟรี! เก็บไว้ใช้ภายหลังได้', fx:(p,g)=>{p.jailCards++;}},
+  {text:'เดินหน้าไปช่อง GO รับเงิน 200 บาท', fx:(p,g)=>g.moveTo(p,0,true)},
+  {text:'ได้รับมรดกจากญาติ รับ 100 บาท', fx:(p,g)=>g.adjustMoney(p,100)},
+  {text:'ถูกปรับฐานทำผิดผังเมือง จ่าย 40 บาท', fx:(p,g)=>g.adjustMoney(p,-40)},
+  {text:'ไปคุกทันที ห้ามผ่าน GO ห้ามรับเงิน', fx:(p,g)=>g.sendToJail(p)},
+  {text:'กรมธรรม์ประกันชีวิตครบกำหนด รับ 100 บาท', fx:(p,g)=>g.adjustMoney(p,100)},
+];
+
+const TOKEN_COLORS=['#e5484d','#3ecf8e','#4d9de5','#ffcb3d'];
+const TOKEN_ICONS=['🐎','🚗','🎩','🐕'];
+
+/* ===================== GAME STATE ===================== */
+let game=null;
+
+function shuffle(arr){const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a;}
+
+class Player{
+  constructor(name,color,icon,idx){
+    this.name=name; this.color=color; this.icon=icon; this.idx=idx;
+    this.money=1500; this.pos=0; this.properties=[]; this.jailCards=0;
+    this.inJail=false; this.jailTurns=0; this.bankrupt=false;
+  }
+}
+
+class Game{
+  constructor(playerNames){
+    this.board=BOARD;
+    this.players=playerNames.map((n,i)=>new Player(n,TOKEN_COLORS[i],TOKEN_ICONS[i],i));
+    this.chance=shuffle(CHANCE_CARDS);
+    this.chest=shuffle(CHEST_CARDS);
+    this.currentIdx=0;
+    this.doublesCount=0;
+    this.phase='awaiting_roll'; // awaiting_roll | awaiting_buy | awaiting_end | jail_decision | game_over
+    this.pendingSpace=null;
+    this.logs=[];
+    this.lastDice=[1,1];
+  }
+  get current(){ return this.players[this.currentIdx]; }
+  log(msg){ this.logs.unshift(msg); if(this.logs.length>200) this.logs.pop(); }
+
+  activePlayers(){ return this.players.filter(p=>!p.bankrupt); }
+
+  nextCard(deckName){
+    const deck = deckName==='chance'?this.chance:this.chest;
+    const card = deck.shift();
+    deck.push(card);
+    return card;
+  }
+
+  adjustMoney(player, amount){
+    if(amount>=0){ player.money+=amount; this.log(`💰 <b>${player.name}</b> ได้รับ ${amount} บาท`); }
+    else{ this.payFrom(player, -amount, null); }
+  }
+
+  payFrom(player, amount, creditor){
+    if(player.money>=amount){
+      player.money-=amount;
+      if(creditor){ creditor.money+=amount; this.log(`💸 <b>${player.name}</b> จ่าย ${amount} บาท ให้ <b>${creditor.name}</b>`); }
+      else this.log(`💸 <b>${player.name}</b> จ่าย ${amount} บาท ให้ธนาคาร`);
+      this.checkPassiveBankruptcyRefresh();
+      return true;
+    } else {
+      openLiquidationModal(player, amount, creditor);
+      return false;
+    }
+  }
+
+  payEachPlayer(payer,amount){
+    this.activePlayers().forEach(p=>{ if(p!==payer){ payer.money-=amount; p.money+=amount; } });
+    this.log(`👥 <b>${payer.name}</b> จ่ายผู้เล่นทุกคนคนละ ${amount} บาท`);
+  }
+  collectFromEach(receiver,amount){
+    this.activePlayers().forEach(p=>{ if(p!==receiver){ p.money-=amount; receiver.money+=amount; } });
+    this.log(`👥 <b>${receiver.name}</b> ได้รับเงินจากผู้เล่นทุกคนคนละ ${amount} บาท`);
+  }
+  payRepairs(player,perHouse,perHotel){
+    let houses=0,hotels=0;
+    player.properties.forEach(id=>{ const s=this.board[id]; if(s.houses===5) hotels++; else houses+=s.houses; });
+    const total=houses*perHouse+hotels*perHotel;
+    if(total>0) this.payFrom(player,total,null);
+  }
+
+  moveTo(player,dest,passGoBonus){
+    const passed = dest < player.pos;
+    player.pos=dest;
+    if(passed && passGoBonus){ player.money+=200; this.log(`🏁 <b>${player.name}</b> ผ่าน GO รับ 200 บาท`); }
+    renderAll();
+    this.landOn(player);
+  }
+  moveToNearestRailroad(player,doubleRent){
+    const rrPositions=[5,15,25,35];
+    let dest=rrPositions.find(p=>p>player.pos);
+    if(dest===undefined) dest=rrPositions[0];
+    const passed = dest<player.pos;
+    player.pos=dest;
+    if(passed){ player.money+=200; this.log(`🏁 <b>${player.name}</b> ผ่าน GO รับ 200 บาท`); }
+    renderAll();
+    this.landOn(player, doubleRent);
+  }
+  moveToNearestUtility(player){
+    const uPositions=[12,28];
+    let dest=uPositions.find(p=>p>player.pos);
+    if(dest===undefined) dest=uPositions[0];
+    const passed = dest<player.pos;
+    player.pos=dest;
+    if(passed){ player.money+=200; this.log(`🏁 <b>${player.name}</b> ผ่าน GO รับ 200 บาท`); }
+    renderAll();
+    this.landOn(player);
+  }
+
+  sendToJail(player){
+    player.pos=10; player.inJail=true; player.jailTurns=0;
+    this.log(`🚔 <b>${player.name}</b> ถูกส่งเข้าคุก`);
+    renderAll();
+    this.phase='awaiting_end';
+    renderCenterActions();
+  }
+
+  ownsFullGroup(player,groupId){
+    const groupProps=this.board.filter(s=>s.type==='property'&&s.group===groupId);
+    return groupProps.every(s=>s.owner===player.idx);
+  }
+  groupHasMortgaged(groupId){
+    return this.board.filter(s=>s.type==='property'&&s.group===groupId).some(s=>s.mortgaged);
+  }
+
+  computeRent(space, roller){
+    const owner=this.players[space.owner];
+    if(space.type==='property'){
+      if(space.houses>0) return space.rent[space.houses];
+      const full=this.ownsFullGroup(owner,space.group);
+      return full? space.rent[0]*2 : space.rent[0];
+    }
+    if(space.type==='railroad'){
+      const count=owner.properties.filter(id=>this.board[id].type==='railroad').length;
+      return RAILROAD_RENT[count-1];
+    }
+    if(space.type==='utility'){
+      const count=owner.properties.filter(id=>this.board[id].type==='utility').length;
+      const mult = count>=2?10:4;
+      return (this.lastDice[0]+this.lastDice[1])*mult;
+    }
+    return 0;
+  }
+
+  landOn(player, forceDoubleRent){
+    const space=this.board[player.pos];
+    if(space.type==='go'){ this.phase='awaiting_end'; }
+    else if(space.type==='tax'){
+      this.payFrom(player, space.amount, null);
+      this.log(`🧾 <b>${player.name}</b> ตกช่อง ${space.name} เสียภาษี ${space.amount} บาท`);
+      this.phase='awaiting_end';
+    }
+    else if(space.type==='chance' || space.type==='chest'){
+      const card=this.nextCard(space.type==='chance'?'chance':'chest');
+      openCardModal(space.type, card, player);
+      return; // phase set after modal closes
+    }
+    else if(space.type==='gotojail'){ this.sendToJail(player); return; }
+    else if(space.type==='parking' || space.type==='jail'){ this.log(`ℹ️ <b>${player.name}</b> ตกช่อง ${space.name}`); this.phase='awaiting_end'; }
+    else if(['property','railroad','utility'].includes(space.type)){
+      if(space.owner===null){
+        this.pendingSpace=space;
+        this.phase='awaiting_buy';
+      } else if(space.owner===player.idx){
+        this.log(`🏠 <b>${player.name}</b> ตกที่ดินของตัวเอง (${space.name})`);
+        this.phase='awaiting_end';
+      } else if(space.mortgaged){
+        this.log(`ℹ️ ${space.name} ถูกจำนองอยู่ ไม่ต้องเสียค่าเช่า`);
+        this.phase='awaiting_end';
+      } else {
+        const owner=this.players[space.owner];
+        let rent=this.computeRent(space, player);
+        if(forceDoubleRent) rent*=2;
+        this.log(`🏠 <b>${player.name}</b> ตก ${space.name} ของ <b>${owner.name}</b> ต้องจ่ายค่าเช่า ${rent} บาท`);
+        this.payFrom(player, rent, owner);
+        this.phase='awaiting_end';
+      }
+    }
+    renderAll();
+  }
+
+  buyCurrentSpace(){
+    const player=this.current, space=this.pendingSpace;
+    if(!space || player.money<space.price) return;
+    player.money-=space.price;
+    space.owner=player.idx;
+    player.properties.push(space.id);
+    this.log(`🛒 <b>${player.name}</b> ซื้อ ${space.name} ราคา ${space.price} บาท`);
+    this.pendingSpace=null;
+    this.phase='awaiting_end';
+    renderAll();
+  }
+  skipBuy(){
+    this.log(`🚫 <b>${this.current.name}</b> ไม่ซื้อ ${this.pendingSpace.name}`);
+    this.pendingSpace=null;
+    this.phase='awaiting_end';
+    renderAll();
+  }
+
+  buildHouse(spaceId){
+    const player=this.current, space=this.board[spaceId];
+    if(space.owner!==player.idx) return;
+    if(!this.ownsFullGroup(player,space.group)) return;
+    if(this.groupHasMortgaged(space.group)) return;
+    if(space.houses>=5) return;
+    const groupProps=this.board.filter(s=>s.type==='property'&&s.group===space.group);
+    const minHouses=Math.min(...groupProps.map(s=>s.houses));
+    if(space.houses>minHouses) return; // must build evenly
+    if(player.money<space.houseCost) return;
+    player.money-=space.houseCost;
+    space.houses++;
+    this.log(`🏗️ <b>${player.name}</b> สร้าง${space.houses===5?'โรงแรม':'บ้าน'}บน ${space.name}`);
+    renderAll();
+  }
+  sellHouse(spaceId){
+    const player=this.current, space=this.board[spaceId];
+    if(space.owner!==player.idx || space.houses<=0) return;
+    const groupProps=this.board.filter(s=>s.type==='property'&&s.group===space.group);
+    const maxHouses=Math.max(...groupProps.map(s=>s.houses));
+    if(space.houses<maxHouses) return; // must sell evenly
+    space.houses--;
+    player.money+=Math.round(space.houseCost/2);
+    this.log(`🏚️ <b>${player.name}</b> ขายบ้านที่ ${space.name}`);
+    renderAll();
+  }
+  mortgage(spaceId){
+    const player=this.current, space=this.board[spaceId];
+    if(space.owner!==player.idx || space.mortgaged || space.houses>0) return;
+    space.mortgaged=true;
+    player.money+=space.mortgage;
+    this.log(`🏦 <b>${player.name}</b> จำนอง ${space.name} ได้เงิน ${space.mortgage} บาท`);
+    renderAll();
+  }
+  unmortgage(spaceId){
+    const player=this.current, space=this.board[spaceId];
+    const cost=Math.round(space.mortgage*1.1);
+    if(space.owner!==player.idx || !space.mortgaged || player.money<cost) return;
+    space.mortgaged=false;
+    player.money-=cost;
+    this.log(`🏦 <b>${player.name}</b> ไถ่ถอนจำนอง ${space.name} เสีย ${cost} บาท`);
+    renderAll();
+  }
+
+  rollDice(){
+    const d1=1+Math.floor(Math.random()*6), d2=1+Math.floor(Math.random()*6);
+    this.lastDice=[d1,d2];
+    document.getElementById('die1').textContent=d1;
+    document.getElementById('die2').textContent=d2;
+    const player=this.current;
+    const isDouble = d1===d2;
+
+    if(player.inJail){
+      if(isDouble){
+        player.inJail=false;
+        this.log(`🎲 <b>${player.name}</b> ทอยเบิ้ล ${d1}-${d2} ออกจากคุกได้!`);
+        this.moveTo(player, (player.pos+d1+d2)%40, true);
+      } else {
+        player.jailTurns++;
+        if(player.jailTurns>=3){
+          player.money-=50;
+          player.inJail=false;
+          this.log(`🎲 <b>${player.name}</b> ครบ 3 ตา จ่ายค่าปรับ 50 บาท ออกจากคุก`);
+          this.moveTo(player,(player.pos+d1+d2)%40,true);
+        } else {
+          this.log(`🎲 <b>${player.name}</b> ทอยได้ ${d1}-${d2} ไม่ใช่เบิ้ล ยังติดคุก (ตาที่ ${player.jailTurns}/3)`);
+          this.phase='awaiting_end';
+          renderAll();
+        }
+      }
+      return;
+    }
+
+    if(isDouble) this.doublesCount++; else this.doublesCount=0;
+    if(this.doublesCount===3){
+      this.log(`🎲 <b>${player.name}</b> ทอยเบิ้ล 3 ครั้งติด เข้าคุกทันที!`);
+      this.doublesCount=0;
+      this.sendToJail(player);
+      return;
+    }
+    this.log(`🎲 <b>${player.name}</b> ทอยได้ ${d1}-${d2}${isDouble?' (เบิ้ล!)':''}`);
+    this.moveTo(player, (player.pos+d1+d2)%40, true);
+  }
+
+  payJailBail(){
+    const player=this.current;
+    if(player.money<50) return;
+    player.money-=50; player.inJail=false;
+    this.log(`💵 <b>${player.name}</b> จ่าย 50 บาท ออกจากคุก`);
+    this.phase='awaiting_roll';
+    renderAll();
+  }
+  useJailCard(){
+    const player=this.current;
+    if(player.jailCards<=0) return;
+    player.jailCards--; player.inJail=false;
+    this.log(`🎫 <b>${player.name}</b> ใช้บัตรออกจากคุกฟรี`);
+    this.phase='awaiting_roll';
+    renderAll();
+  }
+
+  checkPassiveBankruptcyRefresh(){ renderAll(); }
+
+  bankrupt(player, creditor){
+    player.bankrupt=true;
+    player.properties.forEach(id=>{
+      const s=this.board[id];
+      s.houses=0; s.mortgaged=false;
+      if(creditor){ s.owner=creditor.idx; creditor.properties.push(id); }
+      else { s.owner=null; }
+    });
+    player.properties=[];
+    player.money=0;
+    this.log(`💀 <b>${player.name}</b> ล้มละลาย! ${creditor?`ทรัพย์สินตกเป็นของ ${creditor.name}`:'ทรัพย์สินคืนธนาคาร'}`);
+    const alive=this.activePlayers();
+    if(alive.length<=1){
+      this.phase='game_over';
+      this.log(`🏆 <b>${alive[0].name}</b> ชนะเกม!`);
+    }
+    renderAll();
+  }
+
+  endTurn(){
+    if(this.phase==='game_over') return;
+    const wasDouble = this.lastDice[0]===this.lastDice[1] && !this.current.inJail;
+    if(wasDouble && this.doublesCount>0){
+      this.phase='awaiting_roll';
+      this.log(`🔁 <b>${this.current.name}</b> ทอยเบิ้ล ได้เล่นต่ออีกตา`);
+      renderAll();
+      return;
+    }
+    this.doublesCount=0;
+    let next=this.currentIdx;
+    do{ next=(next+1)%this.players.length; } while(this.players[next].bankrupt);
+    this.currentIdx=next;
+    this.phase='awaiting_roll';
+    this.log(`➡️ ถึงตาของ <b>${this.current.name}</b>`);
+    renderAll();
+  }
+}
+
+/* ===================== RENDERING ===================== */
+function edgeFor(pos){
+  if(pos<=10) return 'bottom';
+  if(pos<=20) return 'left';
+  if(pos<=30) return 'top';
+  return 'right';
+}
+function gridPos(i){
+  if(i<=10) return {row:11, col:11-i};
+  if(i<=20) return {row:11-(i-10), col:1};
+  if(i<=30) return {row:1, col:(i-20)+1};
+  return {row:(i-30)+1, col:11};
+}
+
+function buildBoardDom(){
+  const board=document.getElementById('board');
+  board.querySelectorAll('.cell').forEach(c=>c.remove());
+  BOARD.forEach(space=>{
+    const {row,col}=gridPos(space.id);
+    const cell=document.createElement('div');
+    cell.className='cell'+([0,10,20,30].includes(space.id)?' corner':'');
+    cell.style.gridRow=row; cell.style.gridColumn=col;
+    cell.dataset.id=space.id;
+    if(space.group){
+      cell.dataset.edge=edgeFor(space.id);
+      const bar=document.createElement('div');
+      bar.className='colorbar';
+      bar.style.background=GROUP_COLORS[space.group];
+      cell.appendChild(bar);
+    }
+    const nameDiv=document.createElement('div');
+    nameDiv.className='name';
+    let icon='';
+    if(space.type==='go') icon='🏁 ';
+    if(space.type==='jail') icon='🚔 ';
+    if(space.type==='gotojail') icon='👮 ';
+    if(space.type==='parking') icon='🅿️ ';
+    if(space.type==='chance') icon='❓ ';
+    if(space.type==='chest') icon='📦 ';
+    if(space.type==='tax') icon='🧾 ';
+    if(space.type==='railroad') icon='🚂 ';
+    if(space.type==='utility') icon='💡 ';
+    nameDiv.textContent=icon+space.name;
+    cell.appendChild(nameDiv);
+    if(space.price){
+      const priceDiv=document.createElement('div');
+      priceDiv.className='price';
+      priceDiv.textContent='฿'+space.price;
+      cell.appendChild(priceDiv);
+    }
+    const houseWrap=document.createElement('div');
+    houseWrap.className='house-marks';
+    houseWrap.id='houses-'+space.id;
+    cell.appendChild(houseWrap);
+    const tokWrap=document.createElement('div');
+    tokWrap.className='tokens';
+    tokWrap.id='tokens-'+space.id;
+    cell.appendChild(tokWrap);
+    cell.addEventListener('click',()=>openPropertyModal(space.id));
+    board.appendChild(cell);
+  });
+}
+
+function renderBoardState(){
+  BOARD.forEach(space=>{
+    const cell=document.querySelector(`.cell[data-id="${space.id}"]`);
+    if(!cell) return;
+    cell.classList.toggle('owned-mark', space.owner!==null && !space.mortgaged);
+    let existingTag=cell.querySelector('.mortgaged-tag');
+    if(space.mortgaged && !existingTag){
+      const tag=document.createElement('div');
+      tag.className='mortgaged-tag'; tag.textContent='จำนอง';
+      cell.appendChild(tag);
+    } else if(!space.mortgaged && existingTag){ existingTag.remove(); }
+
+    if(space.owner!==null){
+      cell.style.boxShadow=`inset 0 0 0 3px ${game.players[space.owner].color}`;
+    } else cell.style.boxShadow='';
+
+    const houseWrap=document.getElementById('houses-'+space.id);
+    houseWrap.innerHTML='';
+    if(space.houses>0 && space.houses<5){
+      for(let i=0;i<space.houses;i++){
+        const h=document.createElement('div'); h.className='house-mark'; houseWrap.appendChild(h);
+      }
+    } else if(space.houses===5){
+      const h=document.createElement('div'); h.className='hotel-mark'; houseWrap.appendChild(h);
+    }
+  });
+  document.querySelectorAll('.tokens').forEach(t=>t.innerHTML='');
+  game.players.forEach(p=>{
+    if(p.bankrupt) return;
+    const wrap=document.getElementById('tokens-'+p.pos);
+    if(!wrap) return;
+    const tok=document.createElement('div');
+    tok.className='token'; tok.style.background=p.color; tok.title=p.name;
+    wrap.appendChild(tok);
+  });
+}
+
+function renderPlayersPanel(){
+  const panel=document.getElementById('playersPanel');
+  panel.innerHTML='';
+  game.players.forEach((p,i)=>{
+    const card=document.createElement('div');
+    card.className='player-card'+(i===game.currentIdx?' active':'')+(p.bankrupt?' bankrupt':'');
+    const jailInfo = p.inJail? ` · 🚔 ติดคุก (ตา ${p.jailTurns}/3)` : '';
+    card.innerHTML=`
+      <div class="head">
+        <div class="swatch" style="background:${p.color}"></div>
+        <div class="name">${p.icon} ${p.name}</div>
+        <div class="money">฿${p.money}</div>
+      </div>
+      <div class="meta"><span>ที่ดิน ${p.properties.length} แปลง</span><span>บัตรออกคุก ${p.jailCards}</span>${jailInfo}</div>
+      <div class="props-list">${p.properties.map(id=>{
+        const s=BOARD[id];
+        return `<div class="mini-prop" style="border-color:${GROUP_COLORS[s.group]||'#2c5c42'}" data-pid="${id}">${s.name}${s.mortgaged?' 🔒':''}${s.houses>0?(s.houses===5?' 🏨':' 🏠x'+s.houses):''}</div>`;
+      }).join('')}</div>
+    `;
+    panel.appendChild(card);
+  });
+  panel.querySelectorAll('.mini-prop').forEach(el=>{
+    el.addEventListener('click',(e)=>{ e.stopPropagation(); openPropertyModal(parseInt(el.dataset.pid)); });
+  });
+}
+
+function renderOwnedPropsRow(){
+  const row=document.getElementById('ownedPropsRow');
+  const player=game.current;
+  if(!player || player.properties.length===0){ row.innerHTML='<span style="color:var(--muted);font-size:12px">ยังไม่มีที่ดิน — คลิกช่องบนกระดานเพื่อดูรายละเอียด</span>'; return; }
+  row.innerHTML='<span style="font-size:12px;color:var(--muted);width:100%">คลิกที่ดินของคุณเพื่อสร้างบ้าน/จำนอง:</span>'+
+    player.properties.map(id=>{
+      const s=BOARD[id];
+      return `<button class="secondary small" data-pid="${id}">${s.name}</button>`;
+    }).join('');
+  row.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>openPropertyModal(parseInt(b.dataset.pid))));
+}
+
+function renderLog(){
+  const panel=document.getElementById('logPanel');
+  panel.innerHTML=game.logs.slice(0,60).map(l=>`<div class="entry">${l}</div>`).join('');
+  const mini=document.getElementById('logMini');
+  mini.innerHTML=game.logs.slice(0,3).map(l=>`<div>${l}</div>`).join('');
+}
+
+function renderTurnBanner(){
+  const banner=document.getElementById('turnBanner');
+  if(game.phase==='game_over'){ banner.innerHTML='🏆 เกมจบแล้ว!'; return; }
+  const p=game.current;
+  banner.innerHTML=`ตาของ <b style="color:${p.color}">${p.icon} ${p.name}</b>`;
+}
+
+function renderCenterActions(){
+  const wrap=document.getElementById('centerActions');
+  wrap.innerHTML='';
+  if(game.phase==='game_over'){
+    return;
+  }
+  const player=game.current;
+
+  if(player.inJail && game.phase!=='awaiting_end'){
+    wrap.appendChild(makeBtn('🎲 ทอยลุ้นเบิ้ล',()=>game.rollDice()));
+    wrap.appendChild(makeBtn(`💵 จ่าย 50 ออกคุก`,()=>game.payJailBail(), player.money<50));
+    wrap.appendChild(makeBtn(`🎫 ใช้บัตรออกคุก (${player.jailCards})`,()=>game.useJailCard(), player.jailCards<=0));
+  }
+  else if(game.phase==='awaiting_roll'){
+    wrap.appendChild(makeBtn('🎲 ทอยลูกเต๋า',()=>game.rollDice()));
+  }
+  else if(game.phase==='awaiting_buy'){
+    const space=game.pendingSpace;
+    wrap.appendChild(makeBtn(`🛒 ซื้อ ${space.name} (฿${space.price})`,()=>game.buyCurrentSpace(), player.money<space.price));
+    wrap.appendChild(makeBtn('🚫 ไม่ซื้อ',()=>game.skipBuy()));
+  }
+  else if(game.phase==='awaiting_end'){
+    wrap.appendChild(makeBtn('✅ จบตา',()=>game.endTurn()));
+  }
+}
+
+function makeBtn(label,onClick,disabled){
+  const b=document.createElement('button');
+  b.textContent=label; b.disabled=!!disabled; b.addEventListener('click',onClick);
+  return b;
+}
+
+function renderAll(){
+  if(!game) return;
+  renderBoardState();
+  renderPlayersPanel();
+  renderOwnedPropsRow();
+  renderLog();
+  renderTurnBanner();
+  renderCenterActions();
+}
+
+/* ===================== MODALS ===================== */
+function showModal(html){
+  document.getElementById('modalBox').innerHTML=html;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+document.getElementById('modalOverlay').addEventListener('click',(e)=>{
+  if(e.target.id==='modalOverlay') { /* prevent accidental close during forced flows */ }
+});
+
+function openCardModal(deckType, card, player){
+  const icon = deckType==='chance' ? '❓' : '📦';
+  const title = deckType==='chance' ? 'โชคชะตา' : 'กองทุนชุมชน';
+  showModal(`
+    <div class="card-modal">
+      <div class="card-icon">${icon}</div>
+      <h2>${title}</h2>
+      <div class="card-text">${card.text}</div>
+      <button id="cardOkBtn">รับทราบ</button>
+    </div>
+  `);
+  document.getElementById('cardOkBtn').onclick=()=>{
+    closeModal();
+    card.fx(player, game);
+    if(game.phase!=='awaiting_buy' && game.phase!=='game_over' && !player.inJail){
+      if(game.phase!=='jail_decision') game.phase='awaiting_end';
+    }
+    renderAll();
+  };
+}
+
+function openPropertyModal(spaceId){
+  const space=BOARD[spaceId];
+  if(!['property','railroad','utility'].includes(space.type)){
+    showModal(`<h2>${space.name}</h2><p style="color:var(--muted)">ช่องนี้ไม่ใช่ที่ดินที่ซื้อขายได้</p><button onclick="closeModal()">ปิด</button>`);
+    return;
+  }
+  const owner = space.owner!==null? game.players[space.owner] : null;
+  const player = game.current;
+  const isMine = owner===player;
+
+  let rentRows='';
+  if(space.type==='property'){
+    const labels=['ค่าเช่าพื้นฐาน','1 หลัง','2 หลัง','3 หลัง','4 หลัง','โรงแรม'];
+    rentRows = space.rent.map((r,i)=>`<tr class="${space.houses===i?'current':''}"><td>${labels[i]}</td><td>฿${r}</td></tr>`).join('');
+    rentRows += `<tr><td>ค่าเช่า (มีครบเซต ไม่มีบ้าน)</td><td>฿${space.rent[0]*2}</td></tr>`;
+  } else if(space.type==='railroad'){
+    rentRows = RAILROAD_RENT.map((r,i)=>`<tr><td>เป็นเจ้าของ ${i+1} สถานี</td><td>฿${r}</td></tr>`).join('');
+  } else {
+    rentRows = `<tr><td>เป็นเจ้าของ 1 แห่ง</td><td>4 × แต้มลูกเต๋า</td></tr><tr><td>เป็นเจ้าของ 2 แห่ง</td><td>10 × แต้มลูกเต๋า</td></tr>`;
+  }
+
+  let actions='';
+  if(isMine && game.phase!=='awaiting_buy'){
+    if(space.type==='property'){
+      const canBuild = game.ownsFullGroup(player,space.group) && !game.groupHasMortgaged(space.group) && space.houses<5;
+      const groupProps=BOARD.filter(s=>s.type==='property'&&s.group===space.group);
+      const minH=Math.min(...groupProps.map(s=>s.houses));
+      const maxH=Math.max(...groupProps.map(s=>s.houses));
+      const buildOk = canBuild && space.houses<=minH && player.money>=space.houseCost;
+      const sellOk = space.houses>0 && space.houses>=maxH;
+      actions+=`<button ${buildOk?'':'disabled'} id="buildBtn">🏗️ สร้าง${space.houses===4?'โรงแรม':'บ้าน'} (฿${space.houseCost})</button>`;
+      actions+=`<button ${sellOk?'':'disabled'} class="secondary" id="sellHouseBtn">🏚️ ขายบ้าน (คืน ฿${Math.round(space.houseCost/2)})</button>`;
+    }
+    if(!space.mortgaged && space.houses===0){
+      actions+=`<button class="secondary" id="mortgageBtn">🏦 จำนอง (รับ ฿${space.mortgage})</button>`;
+    } else if(space.mortgaged){
+      const cost=Math.round(space.mortgage*1.1);
+      actions+=`<button ${player.money>=cost?'':'disabled'} class="secondary" id="unmortgageBtn">🏦 ไถ่ถอน (จ่าย ฿${cost})</button>`;
+    }
+  }
+
+  showModal(`
+    <button class="close-x" onclick="closeModal()">✕</button>
+    <h2>${space.name}</h2>
+    <p style="color:var(--muted); font-size:13px">
+      ${space.type==='property'?`หมวดสี: <span style="color:${GROUP_COLORS[space.group]}">■</span> ${space.group}`:''}
+      ${space.price?` · ราคา ฿${space.price}`:''}
+      ${owner?` · เจ้าของ: <b style="color:${owner.color}">${owner.name}</b>`:' · ยังไม่มีเจ้าของ'}
+      ${space.mortgaged?' · 🔒 จำนองอยู่':''}
+    </p>
+    <table class="rent-table">${rentRows}</table>
+    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">${actions}</div>
+  `);
+  if(document.getElementById('buildBtn')) document.getElementById('buildBtn').onclick=()=>{ game.buildHouse(spaceId); openPropertyModal(spaceId); };
+  if(document.getElementById('sellHouseBtn')) document.getElementById('sellHouseBtn').onclick=()=>{ game.sellHouse(spaceId); openPropertyModal(spaceId); };
+  if(document.getElementById('mortgageBtn')) document.getElementById('mortgageBtn').onclick=()=>{ game.mortgage(spaceId); openPropertyModal(spaceId); };
+  if(document.getElementById('unmortgageBtn')) document.getElementById('unmortgageBtn').onclick=()=>{ game.unmortgage(spaceId); openPropertyModal(spaceId); };
+}
+
+/* ---- liquidation (raise cash to avoid bankruptcy) ---- */
+function openLiquidationModal(player, amountDue, creditor){
+  function render(){
+    const shortBy = amountDue - player.money;
+    const liquid = player.properties.filter(id=>!BOARD[id].mortgaged);
+    const sellable = player.properties.filter(id=>BOARD[id].houses>0);
+    const canRaiseMore = liquid.length>0 || sellable.length>0;
+    showModal(`
+      <h2>⚠️ เงินไม่พอจ่าย!</h2>
+      <p style="color:var(--muted);font-size:13px">
+        <b style="color:${player.color}">${player.name}</b> ต้องจ่าย ฿${amountDue} ${creditor?`ให้ ${creditor.name}`:'ให้ธนาคาร'}
+        แต่มีเงินแค่ ฿${player.money} (ขาดอีก ฿${Math.max(0,shortBy)})
+      </p>
+      <p style="font-size:12px;color:var(--muted)">ขายบ้าน/จำนองที่ดินเพื่อหาเงินเพิ่ม แล้วกด "ยืนยันจ่ายเงิน"</p>
+      <div class="row" style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto">
+        ${player.properties.map(id=>{
+          const s=BOARD[id];
+          let btns='';
+          if(s.houses>0) btns+=`<button class="secondary small" data-act="sellhouse" data-id="${id}">ขายบ้าน (+฿${Math.round(s.houseCost/2)})</button>`;
+          else if(!s.mortgaged) btns+=`<button class="secondary small" data-act="mortgage" data-id="${id}">จำนอง (+฿${s.mortgage})</button>`;
+          else btns+='<span style="font-size:11px;color:var(--muted)">จำนองแล้ว</span>';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;background:#0c2118;padding:6px 8px;border-radius:6px">
+            <span style="font-size:12px">${s.name}${s.houses>0?' 🏠x'+s.houses:''}${s.mortgaged?' 🔒':''}</span>${btns}
+          </div>`;
+        }).join('') || '<span style="color:var(--muted);font-size:12px">ไม่มีทรัพย์สินให้ขาย</span>'}
+      </div>
+      <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
+        <span>เงินสด: <b style="color:var(--good)">฿${player.money}</b></span>
+        <button id="confirmPayBtn" ${player.money>=amountDue?'':'disabled'}>✅ ยืนยันจ่ายเงิน</button>
+      </div>
+      ${!canRaiseMore && player.money<amountDue ? `<button class="danger" style="width:100%;margin-top:8px" id="forceBankruptBtn">💀 ยอมรับล้มละลาย</button>` : ''}
+    `);
+    document.querySelectorAll('[data-act="sellhouse"]').forEach(b=>b.onclick=()=>{ game.sellHouse(parseInt(b.dataset.id)); render(); renderAll(); });
+    document.querySelectorAll('[data-act="mortgage"]').forEach(b=>b.onclick=()=>{ game.mortgage(parseInt(b.dataset.id)); render(); renderAll(); });
+    const confirmBtn=document.getElementById('confirmPayBtn');
+    if(confirmBtn) confirmBtn.onclick=()=>{
+      player.money-=amountDue;
+      if(creditor) creditor.money+=amountDue;
+      game.log(`💸 <b>${player.name}</b> ระดมทุนจ่าย ${amountDue} บาท สำเร็จ`);
+      closeModal();
+      renderAll();
+      game.phase='awaiting_end';
+      renderCenterActions();
+    };
+    const bankruptBtn=document.getElementById('forceBankruptBtn');
+    if(bankruptBtn) bankruptBtn.onclick=()=>{
+      closeModal();
+      game.bankrupt(player, creditor);
+      if(game.phase!=='game_over'){ game.phase='awaiting_end'; renderCenterActions(); }
+    };
+  }
+  render();
+}
+
+/* ---- trade ---- */
+function openTradeModal(){
+  const me=game.current;
+  const others=game.activePlayers().filter(p=>p!==me);
+  if(others.length===0) return;
+  let targetIdx=others[0].idx;
+
+  function render(){
+    const target=game.players[targetIdx];
+    showModal(`
+      <button class="close-x" onclick="closeModal()">✕</button>
+      <h2>🔄 เสนอแลกเปลี่ยน</h2>
+      <p style="font-size:13px;color:var(--muted)">แลกกับ:
+        <select id="targetSelect">${others.map(o=>`<option value="${o.idx}" ${o.idx===targetIdx?'selected':''}>${o.name}</option>`).join('')}</select>
+      </p>
+      <div class="trade-cols">
+        <div class="trade-col">
+          <h4>${me.name} เสนอให้</h4>
+          <label>เงิน: <input type="number" id="myMoney" min="0" max="${me.money}" value="0" style="width:80px"></label>
+          ${me.properties.map(id=>`<label><input type="checkbox" data-mine="${id}"> ${BOARD[id].name}</label>`).join('')||'<span style="color:var(--muted)">ไม่มีที่ดิน</span>'}
+        </div>
+        <div class="trade-col">
+          <h4>ขอจาก ${target.name}</h4>
+          <label>เงิน: <input type="number" id="theirMoney" min="0" max="${target.money}" value="0" style="width:80px"></label>
+          ${target.properties.map(id=>`<label><input type="checkbox" data-theirs="${id}"> ${BOARD[id].name}</label>`).join('')||'<span style="color:var(--muted)">ไม่มีที่ดิน</span>'}
+        </div>
+      </div>
+      <button id="proposeBtn" style="width:100%;margin-top:12px">📨 เสนอข้อเสนอ</button>
+    `);
+    document.getElementById('targetSelect').onchange=(e)=>{ targetIdx=parseInt(e.target.value); render(); };
+    document.getElementById('proposeBtn').onclick=()=>{
+      const myMoney=parseInt(document.getElementById('myMoney').value)||0;
+      const theirMoney=parseInt(document.getElementById('theirMoney').value)||0;
+      const myProps=[...document.querySelectorAll('[data-mine]:checked')].map(el=>parseInt(el.dataset.mine));
+      const theirProps=[...document.querySelectorAll('[data-theirs]:checked')].map(el=>parseInt(el.dataset.theirs));
+      if(myMoney>me.money || theirMoney>target.money) return;
+      confirmTrade(me,target,myMoney,myProps,theirMoney,theirProps);
+    };
+  }
+  render();
+}
+
+function confirmTrade(me,target,myMoney,myProps,theirMoney,theirProps){
+  const summary=`
+    <b>${me.name}</b> ให้: ฿${myMoney}${myProps.length?', '+myProps.map(id=>BOARD[id].name).join(', '):''}<br>
+    <b>${target.name}</b> ให้: ฿${theirMoney}${theirProps.length?', '+theirProps.map(id=>BOARD[id].name).join(', '):''}
+  `;
+  showModal(`
+    <h2>ยืนยันข้อเสนอ</h2>
+    <div class="card-text" style="text-align:left">${summary}</div>
+    <p style="font-size:12px;color:var(--muted)">ให้ <b>${target.name}</b> ตัดสินใจ (เล่นเก้าอี้เดียวกัน):</p>
+    <div style="display:flex;gap:8px">
+      <button id="acceptTrade">✅ ${target.name} ยอมรับ</button>
+      <button class="secondary" id="declineTrade">❌ ปฏิเสธ</button>
+    </div>
+  `);
+  document.getElementById('acceptTrade').onclick=()=>{
+    me.money-=myMoney; target.money+=myMoney;
+    target.money-=theirMoney; me.money+=theirMoney;
+    myProps.forEach(id=>{ BOARD[id].owner=target.idx; me.properties=me.properties.filter(x=>x!==id); target.properties.push(id); });
+    theirProps.forEach(id=>{ BOARD[id].owner=me.idx; target.properties=target.properties.filter(x=>x!==id); me.properties.push(id); });
+    game.log(`🔄 <b>${me.name}</b> และ <b>${target.name}</b> แลกเปลี่ยนสำเร็จ`);
+    closeModal();
+    renderAll();
+  };
+  document.getElementById('declineTrade').onclick=()=>{
+    game.log(`❌ <b>${target.name}</b> ปฏิเสธข้อเสนอแลกเปลี่ยนจาก <b>${me.name}</b>`);
+    closeModal();
+  };
+}
+
+/* ===================== SETUP SCREEN LOGIC ===================== */
+let playerCount=4;
+function renderSetup(){
+  const toggle=document.getElementById('countToggle');
+  toggle.innerHTML='';
+  [2,3,4].forEach(n=>{
+    const b=document.createElement('button');
+    b.textContent=n+' คน';
+    b.className=n===playerCount?'active':'';
+    b.onclick=()=>{ playerCount=n; renderSetup(); };
+    toggle.appendChild(b);
+  });
+  const rows=document.getElementById('playerRows');
+  rows.innerHTML='';
+  for(let i=0;i<playerCount;i++){
+    const row=document.createElement('div');
+    row.className='player-setup-row';
+    row.innerHTML=`<div class="swatch" style="background:${TOKEN_COLORS[i]}"></div>
+      <input type="text" value="ผู้เล่น ${i+1} ${TOKEN_ICONS[i]}" id="pname${i}" maxlength="16">`;
+    rows.appendChild(row);
+  }
+}
+renderSetup();
+
+document.getElementById('startBtn').addEventListener('click',()=>{
+  const names=[];
+  for(let i=0;i<playerCount;i++){
+    const v=document.getElementById('pname'+i).value.trim();
+    names.push(v || `ผู้เล่น ${i+1}`);
+  }
+  game=new Game(names);
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('gameScreen').classList.add('active');
+  buildBoardDom();
+  game.log(`🎮 เริ่มเกม! ผู้เล่น: ${names.join(', ')}`);
+  renderAll();
+});
+
+document.getElementById('tradeBtn').addEventListener('click',()=>{
+  if(!game || game.phase==='game_over') return;
+  openTradeModal();
+});
+document.getElementById('restartBtn').addEventListener('click',()=>{
+  if(confirm('เริ่มเกมใหม่? ความคืบหน้าปัจจุบันจะหายไป')){
+    location.reload();
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ตรวจสอบคำสั่งซื้อ — Controller Mod by Mosu</title>
+  <link rel="icon" type="image/svg+xml" href="brand/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --bg: #090A07;
+      --panel: #141812;
+      --panel-2: #1C2218;
+      --line: #2A3616;
+      --copper: #C6FF00;
+      --copper-dim: #5C6E1A;
+      --copper-text: #D4FF4D;
+      --copper-bright: #E3FF8C;
+      --silk: #F2F5EC;
+      --silk-dim: #9AA495;
+      --required: #FF4D6D;
+      --ok: #6EE7C9;
+      --warn: #FFB454;
+      --mono: 'IBM Plex Mono', ui-monospace, monospace;
+      --sans: 'IBM Plex Sans Thai', 'IBM Plex Sans', system-ui, sans-serif;
+    }
+
+    /* ---------- ธีม Carbon & Ice (ต้องตรงกับ index.html) ----------
+       ลูกค้าสลับธีมที่หน้าไหนก็ได้ ค่าเก็บใน localStorage คีย์ 'mosuTheme' ใช้ร่วมกันสองหน้า */
+    body.carbon-theme {
+      --bg: #090A0C;
+      --panel: #14171C;
+      --panel-2: #1C2027;
+      --line: #262B33;
+      --copper: #C6FF00;
+      --copper-dim: #39414D;
+      --copper-text: #D8FF63;
+      --copper-bright: #E3FF8C;
+      --silk: #F0F3F6;
+      --silk-dim: #858E9B;
+      --required: #FF4D6D;
+      --ok: #6EE7C9;
+      --warn: #FFB454;
+    }
+
+    /* พื้นหลัง/เส้นเรืองแสงของหน้านี้ฝังสีเขียว rgba(198,255,0,…) ไว้ตรงๆ ไม่ได้อ่านจากตัวแปร
+       ธีม Carbon เลยต้องเขียนทับเอง ไม่งั้นสลับธีมแล้วพื้นหลังยังเขียวจัดอยู่ */
+    body.carbon-theme {
+      background-image:
+        radial-gradient(circle 520px at 10% 0%, rgba(198, 255, 0, 0.07) 0%, rgba(198, 255, 0, 0.02) 55%, transparent 100%),
+        radial-gradient(circle 440px at 90% 0%, rgba(79, 216, 232, 0.07) 0%, rgba(79, 216, 232, 0.02) 55%, transparent 100%),
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.055) 2px, transparent 2px);
+    }
+
+    body.carbon-theme .site-header {
+      border-bottom-color: rgba(38, 43, 51, 0.9);
+    }
+
+    body.carbon-theme .site-header::after {
+      background: linear-gradient(90deg, transparent, rgba(198, 255, 0, 0.3) 15%, rgba(79, 216, 232, 0.3) 85%, transparent);
+      box-shadow: 0 0 10px rgba(198, 255, 0, 0.14), 0 0 22px rgba(79, 216, 232, 0.1);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-toggle-switch {
+      position: relative;
+      width: 38px;
+      height: 20px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      transition: border-color .15s ease;
+    }
+
+    .theme-toggle-switch:hover {
+      border-color: var(--copper-dim);
+    }
+
+    .theme-toggle-dot {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--copper);
+      transition: transform .2s ease, background .2s ease;
+      box-shadow: 0 0 6px rgba(198, 255, 0, 0.5);
+    }
+
+    body.carbon-theme .theme-toggle-dot {
+      transform: translateX(18px);
+      background: #4FD8E8;
+      box-shadow: 0 0 6px rgba(79, 216, 232, 0.55);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    @keyframes gridMove {
+      0%   { background-position: center center, center center, 0 0; }
+      100% { background-position: center center, center center, 28px 28px; }
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--silk);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(circle 520px at 10% 0%, rgba(198,255,0,0.18) 0%, rgba(198,255,0,0.06) 55%, transparent 100%),
+        radial-gradient(circle 440px at 90% 0%, rgba(198,255,0,0.14) 0%, rgba(198,255,0,0.04) 55%, transparent 100%),
+        radial-gradient(circle at 1px 1px, rgba(198,255,0,0.10) 2px, transparent 2px);
+      background-size: auto, auto, 28px 28px;
+      background-repeat: no-repeat, no-repeat, repeat;
+      animation: gridMove 25s linear infinite;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 120vw;
+      height: 120vh;
+      background: var(--copper);
+      opacity: 0.022;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      filter: blur(100px);
+      z-index: -1;
+    }
+
+    button { font-family: var(--sans); cursor: pointer; }
+    a { color: var(--copper-text); }
+
+    /* ===================== SITE HEADER ===================== */
+    .site-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 32px 20px;
+      border-bottom: 1px solid rgba(42,54,22,0.7);
+      position: relative;
+    }
+
+    .site-header::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(198,255,0,0.5) 15%, rgba(198,255,0,0.5) 85%, transparent);
+      box-shadow: 0 0 10px rgba(198,255,0,0.35), 0 0 22px rgba(198,255,0,0.18);
+    }
+
+    .site-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .site-logo-mark {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: #0d1108;
+      color: var(--copper);
+      border: 2px solid var(--copper);
+      box-shadow: 0 0 10px rgba(198,255,0,0.7), 0 0 24px rgba(198,255,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-weight: 800; font-size: 18px;
+      flex: 0 0 auto;
+    }
+
+    .site-logo-text { display: flex; flex-direction: column; line-height: 1.3; }
+    .site-logo-title { font-family: var(--mono); font-size: 13.5px; font-weight: 700; color: var(--silk); white-space: nowrap; }
+    .site-logo-title-accent { color: var(--copper-text); }
+    .site-logo-sub { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--silk-dim); }
+
+    .header-back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(28,34,24,0.5);
+      color: var(--silk-dim);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: border-color .14s, color .14s;
+      white-space: nowrap;
+    }
+    .header-back-btn:hover { border-color: var(--copper-dim); color: var(--silk); }
+
+    /* ===================== PAGE WRAPPER ===================== */
+    .page {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 48px 24px 100px;
+    }
+
+    .page-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--copper-text);
+      margin: 0 0 8px;
+    }
+
+    .page-title {
+      font-size: clamp(22px, 4vw, 30px);
+      font-weight: 700;
+      line-height: 1.25;
+      margin: 0 0 6px;
+    }
+
+    .page-sub {
+      font-size: 13.5px;
+      color: var(--silk-dim);
+      line-height: 1.65;
+      margin: 0 0 32px;
+    }
+
+    /* ===================== LOOKUP FORM ===================== */
+    .lookup-form {
+      background: rgba(20,24,18,0.7);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px;
+      backdrop-filter: blur(6px);
+      margin-bottom: 24px;
+    }
+
+    .text-field { margin-bottom: 16px; }
+    .text-field:last-of-type { margin-bottom: 0; }
+
+    .field-label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--silk-dim);
+      margin-bottom: 6px;
+    }
+
+    .text-input {
+      width: 100%;
+      font-family: var(--sans);
+      font-size: 14.5px;
+      color: var(--silk);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px 14px;
+      transition: border-color .14s, box-shadow .14s;
+    }
+    .text-input::placeholder { color: var(--silk-dim); opacity: 0.6; }
+    .text-input:focus {
+      border-color: var(--copper-dim);
+      box-shadow: 0 0 0 3px rgba(198,255,0,0.07);
+      outline: none;
+    }
+    .text-input:focus-visible { outline: 2px solid var(--copper-bright); outline-offset: 1px; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 13px 14px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(130deg, var(--copper-dim) 0%, var(--copper) 100%);
+      color: #0B0D08;
+      font-weight: 700;
+      font-size: 14.5px;
+      margin-top: 18px;
+      transition: filter .14s, transform .1s;
+    }
+    .btn-primary:hover  { filter: brightness(1.08); }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ===================== MESSAGES ===================== */
+    .error-msg {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      background: rgba(255,77,109,0.08);
+      border: 1px solid rgba(255,77,109,0.3);
+      border-radius: 8px;
+      padding: 10px 13px;
+      color: var(--required);
+      font-size: 13px;
+      line-height: 1.5;
+      margin-top: 16px;
+    }
+
+    /* ===================== LOADING ===================== */
+    .loading-wrap {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--silk-dim);
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .loading-dots::after {
+      content: '';
+      animation: dots 1.2s steps(3, end) infinite;
+    }
+    @keyframes dots {
+      0%   { content: ''; }
+      33%  { content: '.'; }
+      66%  { content: '..'; }
+      100% { content: '...'; }
+    }
+
+    /* ===================== RESULT CARD ===================== */
+    .result-eyebrow {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--copper-dim);
+      margin: 0 0 10px;
+    }
+
+    .order-card {
+      background: rgba(20,24,18,0.7);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      backdrop-filter: blur(6px);
+    }
+
+    .order-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px 22px 16px;
+      flex-wrap: wrap;
+    }
+
+    .order-code { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--copper-text); }
+    .order-date { font-family: var(--mono); font-size: 11.5px; color: var(--silk-dim); margin-top: 3px; }
+
+    .order-badge {
+      display: inline-flex;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 999px;
+      white-space: nowrap;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+    .order-badge.confirmed { color: var(--ok);       background: rgba(110,231,201,0.12); }
+    .order-badge.review    { color: #FFC44D;          background: rgba(255,196,77,0.12);  }
+    .order-badge.cancelled { color: var(--required);  background: rgba(255,77,109,0.12);  }
+    .order-badge.pending   { color: var(--silk-dim);  background: rgba(154,164,149,0.14); }
+
+    .order-section {
+      padding: 0 22px 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--silk-dim);
+      display: block;
+      padding-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    .items-pre {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: var(--silk);
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin: 0;
+    }
+
+    .price-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .price-table td {
+      padding: 5px 0;
+      font-size: 13.5px;
+      vertical-align: top;
+    }
+
+    .price-table td:first-child { color: var(--silk-dim); padding-right: 16px; }
+    .price-table td:last-child  { color: var(--silk); text-align: right; font-family: var(--mono); }
+
+    .price-table .row-discount td { color: var(--ok); }
+
+    .price-table .row-total td {
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--silk);
+    }
+    .price-table .row-total td:first-child { color: var(--silk); }
+    .price-table .row-total td:last-child  { color: var(--copper-text); }
+
+    .address-text {
+      font-size: 13.5px;
+      color: var(--silk);
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .lookup-again-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 20px;
+      background: none;
+      border: none;
+      color: var(--silk-dim);
+      font-family: var(--sans);
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      padding: 0;
+      transition: color .14s;
+    }
+    .lookup-again-btn:hover { color: var(--silk); }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media (max-width: 480px) {
+      .site-header { padding: 14px 18px 16px; }
+      .page { padding: 32px 18px 80px; }
+      .lookup-form { padding: 18px; }
+      .order-card-head, .order-section { padding-left: 18px; padding-right: 18px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ===== Site Header ===== -->
+  <header class="site-header">
+    <a class="site-logo" href="index.html" title="กลับหน้าร้าน">
+      <div class="site-logo-mark">M</div>
+      <div class="site-logo-text">
+        <span class="site-logo-title">Controller <span class="site-logo-title-accent">Mod</span></span>
+        <span class="site-logo-sub">by Mosu</span>
+      </div>
+    </a>
+    <div class="header-actions">
+      <button type="button" class="theme-toggle-switch" id="themeToggleBtn" aria-label="สลับธีม">
+        <span class="theme-toggle-dot"></span>
+      </button>
+      <a class="header-back-btn" href="index.html">← กลับร้านค้า</a>
+    </div>
+  </header>
+
+  <!-- ===== Page ===== -->
+  <div class="page">
+
+    <!-- ===== Lookup Form ===== -->
+    <div id="viewForm">
+      <p class="page-eyebrow">Order Lookup</p>
+      <h1 class="page-title">ตรวจสอบคำสั่งซื้อ</h1>
+      <p class="page-sub">กรอกเลขคำสั่งซื้อและอีเมลที่ใช้ตอนสั่งซื้อเพื่อดูรายละเอียด</p>
+
+      <div class="lookup-form">
+        <form id="lookupForm" autocomplete="off">
+          <div class="text-field">
+            <label class="field-label" for="inputOrderCode">เลขคำสั่งซื้อ</label>
+            <input type="text" class="text-input" id="inputOrderCode"
+              placeholder="เช่น SO-A1B2C3"
+              autocomplete="off" spellcheck="false">
+          </div>
+          <div class="text-field">
+            <label class="field-label" for="inputEmail">อีเมลที่ใช้ตอนสั่งซื้อ</label>
+            <input type="email" class="text-input" id="inputEmail"
+              placeholder="you@example.com"
+              autocomplete="email">
+          </div>
+          <button type="submit" class="btn-primary" id="lookupSubmit">ค้นหาคำสั่งซื้อ</button>
+        </form>
+
+        <div class="error-msg" id="lookupError" style="display:none;">
+          <span aria-hidden="true">⚠</span>
+          <span id="lookupErrorText">เกิดข้อผิดพลาด</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Loading ===== -->
+    <div id="viewLoading" style="display:none;">
+      <div class="loading-wrap">
+        <span class="loading-dots">กำลังค้นหา</span>
+      </div>
+    </div>
+
+    <!-- ===== Result ===== -->
+    <div id="viewResult" style="display:none;">
+      <p class="result-eyebrow">ผลการค้นหา</p>
+
+      <div class="order-card" id="resultCard">
+
+        <div class="order-card-head">
+          <div>
+            <div class="order-code" id="resCode">—</div>
+            <div class="order-date" id="resDate"></div>
+          </div>
+          <span class="order-badge pending" id="resBadge">—</span>
+        </div>
+
+        <!-- Items -->
+        <div class="order-section" id="sectionItems" style="display:none;">
+          <span class="section-label">รายการสินค้า</span>
+          <pre class="items-pre" id="resItems"></pre>
+        </div>
+
+        <!-- Price breakdown -->
+        <div class="order-section" id="sectionPrice">
+          <span class="section-label">ยอดเงิน</span>
+          <table class="price-table">
+            <tbody id="priceTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Address -->
+        <div class="order-section" id="sectionAddress" style="display:none;">
+          <span class="section-label">ที่อยู่จัดส่ง</span>
+          <div class="address-text" id="resAddress"></div>
+        </div>
+
+      </div>
+
+      <button type="button" class="lookup-again-btn" id="btnLookupAgain">← ค้นหาคำสั่งซื้ออื่น</button>
+    </div>
+
+  </div><!-- /page -->
+
+  <script>
+    // ---------- ธีม (ใช้คีย์ 'mosuTheme' ร่วมกับ index.html) ----------
+    (function () {
+      var THEME_KEY = 'mosuTheme';
+      var body = document.body;
+
+      function applyTheme(name) {
+        body.classList.toggle('carbon-theme', name === 'carbon');
+      }
+
+      var saved = null;
+      try { saved = localStorage.getItem(THEME_KEY); } catch (e) { /* โหมดส่วนตัวอ่านไม่ได้ ใช้ธีมเริ่มต้น */ }
+      if (saved === 'carbon') applyTheme('carbon');
+
+      document.getElementById('themeToggleBtn').addEventListener('click', function () {
+        var next = body.classList.contains('carbon-theme') ? 'dark' : 'carbon';
+        applyTheme(next);
+        try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* เขียนไม่ได้ ก็แค่ไม่จำข้ามหน้า */ }
+      });
+    })();
+
+    var WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw02swDWMJ4e-xb1CT4zzRZ27CYtfQVGbULpVMkTyLOTDO2ysgKG9ijBUum7wy2oQ4/exec';
+
+    var viewForm    = document.getElementById('viewForm');
+    var viewLoading = document.getElementById('viewLoading');
+    var viewResult  = document.getElementById('viewResult');
+    var lookupError = document.getElementById('lookupError');
+    var lookupErrorText = document.getElementById('lookupErrorText');
+    var lookupSubmit = document.getElementById('lookupSubmit');
+
+    function showView(name) {
+      viewForm.style.display    = name === 'form'    ? '' : 'none';
+      viewLoading.style.display = name === 'loading' ? '' : 'none';
+      viewResult.style.display  = name === 'result'  ? '' : 'none';
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    var STATUS_MAP = {
+      confirmed: { label: 'ยืนยันแล้ว',   cls: 'confirmed' },
+      review:    { label: 'ต้องตรวจสอบ',  cls: 'review' },
+      cancelled: { label: 'ยกเลิก',        cls: 'cancelled' },
+      pending:   { label: 'รอชำระ/รอดำเนินการ', cls: 'pending' }
+    };
+
+    function statusMeta(statusText) {
+      var t = (statusText || '').toLowerCase();
+      if (t.indexOf('ยืนยัน') !== -1 || t === 'confirmed') return STATUS_MAP.confirmed;
+      if (t.indexOf('ตรวจ') !== -1 || t === 'review') return STATUS_MAP.review;
+      if (t.indexOf('ยกเลิก') !== -1 || t === 'cancelled') return STATUS_MAP.cancelled;
+      if (t) return { label: statusText, cls: 'pending' };
+      return STATUS_MAP.pending;
+    }
+
+    function renderResult(order) {
+      var meta = statusMeta(order.statusText);
+
+      document.getElementById('resCode').textContent = order.code || '—';
+      document.getElementById('resDate').textContent = order.date || '';
+
+      var badge = document.getElementById('resBadge');
+      badge.textContent = meta.label;
+      badge.className = 'order-badge ' + meta.cls;
+
+      var itemsEl = document.getElementById('resItems');
+      var sectionItems = document.getElementById('sectionItems');
+      if (order.items) {
+        itemsEl.textContent = order.items;
+        sectionItems.style.display = '';
+      } else {
+        sectionItems.style.display = 'none';
+      }
+
+      var tbody = document.getElementById('priceTableBody');
+      tbody.innerHTML = '';
+
+      function addRow(label, value, cls) {
+        var tr = document.createElement('tr');
+        if (cls) tr.className = cls;
+        tr.innerHTML = '<td>' + escapeHtml(label) + '</td><td>' + escapeHtml(value) + '</td>';
+        tbody.appendChild(tr);
+      }
+
+      var hasSubtotal = order.subtotal && Number(order.subtotal) > 0;
+      var hasDiscount = order.discountAmount && Number(order.discountAmount) > 0;
+
+      if (hasSubtotal) {
+        addRow('ราคาก่อนลด', '฿' + Number(order.subtotal).toLocaleString('th-TH'));
+      }
+      if (hasDiscount) {
+        var discLabel = 'ส่วนลด' + (order.discountCode ? ' (' + order.discountCode + ')' : '');
+        addRow(discLabel, '−฿' + Number(order.discountAmount).toLocaleString('th-TH'), 'row-discount');
+      }
+      addRow('ยอดรวม', '฿' + (Number(order.total) || 0).toLocaleString('th-TH'), 'row-total');
+
+      var addressEl = document.getElementById('resAddress');
+      var sectionAddress = document.getElementById('sectionAddress');
+      if (order.address) {
+        addressEl.textContent = order.address;
+        sectionAddress.style.display = '';
+      } else {
+        sectionAddress.style.display = 'none';
+      }
+
+      showView('result');
+    }
+
+    document.getElementById('lookupForm').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var orderCode = document.getElementById('inputOrderCode').value.trim();
+      var email     = document.getElementById('inputEmail').value.trim();
+
+      lookupError.style.display = 'none';
+
+      if (!orderCode) {
+        lookupErrorText.textContent = 'กรุณากรอกเลขคำสั่งซื้อ';
+        lookupError.style.display = 'flex';
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        lookupErrorText.textContent = 'กรุณากรอกอีเมลให้ถูกต้อง';
+        lookupError.style.display = 'flex';
+        return;
+      }
+
+      lookupSubmit.disabled = true;
+      lookupSubmit.textContent = 'กำลังค้นหา…';
+      showView('loading');
+
+      var url = WEBHOOK_URL +
+        '?action=getOrderByCode' +
+        '&orderCode=' + encodeURIComponent(orderCode) +
+        '&email='     + encodeURIComponent(email);
+
+      fetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data && data.result === 'success' && data.order) {
+            renderResult(data.order);
+          } else {
+            var msg = (data && data.message) || 'ไม่พบคำสั่งซื้อ กรุณาตรวจสอบเลขคำสั่งซื้อและอีเมลอีกครั้ง';
+            lookupErrorText.textContent = msg;
+            lookupError.style.display = 'flex';
+            showView('form');
+          }
+        })
+        .catch(function () {
+          lookupErrorText.textContent = 'เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง';
+          lookupError.style.display = 'flex';
+          showView('form');
+        })
+        .finally(function () {
+          lookupSubmit.disabled = false;
+          lookupSubmit.textContent = 'ค้นหาคำสั่งซื้อ';
+        });
+    });
+
+    document.getElementById('btnLookupAgain').addEventListener('click', function () {
+      showView('form');
+    });
+  </script>
+</body>
+
+</html>
