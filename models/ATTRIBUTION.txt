@@ -1,0 +1,25 @@
+ds4.glb
+=======
+
+Model: "DualShock 4 PlayStation Controller"
+Author: shaielwolf (https://sketchfab.com/shaielwolf)
+Source: https://sketchfab.com/3d-models/dualshock-4-playstation-controller-e3c2f0dc16524fc19cdde45bad1de1a9
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+         https://creativecommons.org/licenses/by/4.0/
+
+The CC BY 4.0 licence permits commercial use and modification, but REQUIRES
+that credit is given to the original author.
+
+Credit is displayed in the bottom-right corner of the 3D preview box on the
+order page as "Model created by shaielwolf", linking back to the source page.
+Do not remove it — doing so puts this site in breach of the licence.
+
+--------------------------------------------------------------------------
+หมายเหตุภาษาไทย
+
+โมเดลนี้เป็นของคุณ shaielwolf เผยแพร่ภายใต้สัญญาอนุญาต CC BY 4.0
+ใช้ในเชิงพาณิชย์ได้ และแก้ไขได้ แต่ "ต้องให้เครดิตเจ้าของ" เสมอ
+
+เครดิตแสดงอยู่ที่มุมขวาล่างของกล่องพรีวิว 3 มิติ ในหน้าสั่งทำ
+ข้อความว่า "Model created by shaielwolf" และกดลิงก์กลับไปหน้าต้นทางได้
+กรุณาอย่าลบออก ไม่งั้นจะผิดเงื่อนไขสัญญาอนุญาต

@@ -721,6 +721,183 @@
     }
   }
 
+  /* ===================================================================
+   * 5b) โมเดลจากไฟล์ .glb ของจริง (DualShock 4 โดย shaielwolf, CC BY 4.0)
+   * -------------------------------------------------------------------
+   * ห่อ scene ที่โหลดมาให้มีหน้าตา API เหมือน createControllerModel()
+   * ทุกอย่าง (group / parts / materials / applyState / dispose)
+   * ตัวเรียกจึงสลับไปมาได้โดยไม่ต้องรู้ว่าข้างในเป็นโมเดลแบบไหน
+   * =================================================================== */
+  /* จัดครีบปุ่มหลังให้ "ฐานจมในเปลือกนิดเดียว ปลายยื่นออกมา"
+   * buildPaddleGeo() ทำ geo.center() ไว้ ครีบจึงมีจุดกึ่งกลางอยู่ที่ 0
+   * ถ้าวางดื้อๆ ครีบครึ่งบนจะจมหายเข้าไปในตัวจอย
+   * ฟังก์ชันนี้เลื่อนครีบลงครึ่งความสูง แล้วเผื่อให้ฐานจมไว้ 0.10 ซม. */
+  function seatPaddle(THREE, mesh) {
+    mesh.geometry.computeBoundingBox();
+    var bb = mesh.geometry.boundingBox;
+    mesh.position.y = -(bb.max.y) + 0.10;
+    return mesh;
+  }
+
+  function wrapGlbModel(THREE, prepared) {
+    var group = prepared.root;
+    var mats = prepared.materials;
+    var parts = prepared.parts;
+    var tinters = prepared.tinters || null;
+    var current = {};
+
+    /* ปุ่มหลัง (rear paddle) — ไฟล์ต้นฉบับไม่มี เพราะเป็นของที่ร้านติดตั้งเอง
+     * จึงปั้นเพิ่มด้วยโค้ดแล้ววางบนฝาหลังตรงด้ามจับ */
+    var paddleMat = new THREE.MeshPhysicalMaterial({
+      color: 0x1E2126, roughness: 0.4, metalness: 0.3, clearcoat: 0.5
+    });
+    mats.paddle = paddleMat;
+    parts.paddles = {};
+    [-1, 1].forEach(function (s) {
+      var key = s < 0 ? 'left' : 'right';
+      var holder = new THREE.Group();
+      holder.position.set(s * 5.05, -2.62, 2.05);
+      holder.rotation.set(0.05, s * 0.16, s * 0.30);
+      holder.visible = false;
+      group.add(holder);
+      var mesh = new THREE.Mesh(buildPaddleGeo(THREE, PADDLE_HEIGHT.standard), paddleMat);
+      mesh.rotation.y = Math.PI / 2;
+      holder.add(mesh);
+      parts.paddles[key] = { holder: holder, mesh: mesh, height: 'standard' };
+    });
+
+    /* ไลต์บาร์ — โมเดลต้นฉบับ "อบ" ไฟไว้ในเทกซ์เจอร์ emissive ของ MAT_2 อยู่แล้ว
+     * (เป็นแถบสีน้ำเงินตรงขอบบน) จึงไม่ต้องแปะแท่งเรืองแสงเพิ่ม
+     * แค่วาดเทกซ์เจอร์นั้นใหม่เป็นสีของบอร์ด PCB ที่ลูกค้าเลือก */
+    var lbMat = mats.shellBack || null;
+    if (lbMat) mats.lightbar = lbMat;
+
+    function shellDefLocal(state) {
+      var key = state && state.shellColor;
+      if (state && state.shell === 'withController') return SHELL_COLORS.__default;
+      return (key && SHELL_COLORS[key]) || SHELL_COLORS.__default;
+    }
+
+    function applyState(state, instant) {
+      state = state || {};
+      var def = shellDefLocal(state);
+      var tweens = [];
+      function setColor(mat, hex, prop) {
+        if (!mat) return;
+        prop = prop || 'color';
+        if (!mat[prop]) return;
+        if (instant) { mat[prop].setHex(hex); return; }
+        tweens.push({ mat: mat, prop: prop, to: new THREE.Color(hex) });
+      }
+
+      /* 1) สีกรอบ — เทกซ์เจอร์ต้นฉบับทาสีดำมา คูณสีทับไม่ขึ้น
+       *    จึงต้องวาดเทกซ์เจอร์ใหม่ (ดู makeShellTinter ใน controller-3d-glb.js) */
+      var shellHex = { shell: def.body, shellBack: def.grip, shellInner: def.grip };
+      if (tinters && tinters.shell) {
+        tinters.shell.forEach(function (t) { t.apply(shellHex[t.role] || def.body); });
+      }
+      Object.keys(shellHex).forEach(function (role) {
+        var m = mats[role];
+        if (!m) return;
+        m.roughness = def.rough;
+        m.metalness = def.metal;
+        var wantTransparent = !!def.transparent;
+        if (m.transparent !== wantTransparent) {
+          m.transparent = wantTransparent;
+          m.needsUpdate = true;
+        }
+        m.opacity = wantTransparent ? def.opacity : 1;
+      });
+
+      // 2) ก้านอนาล็อก — ย้อมสีตามชนิดโมดูลที่เลือก
+      var stickKey = state.stick && STICK_ACCENT[state.stick] ? state.stick : null;
+      if (mats.stick) {
+        if (tinters && tinters.accent && tinters.accent.stick) {
+          // วาดเทกซ์เจอร์ใหม่ (คูณสีทับไม่ขึ้น เพราะต้นฉบับทาดำมา)
+          tinters.accent.stick(stickKey ? STICK_ACCENT[stickKey].color : null);
+        } else {
+          setColor(mats.stick, stickKey ? STICK_ACCENT[stickKey].color : 0x2A2D33);
+        }
+        mats.stick.metalness = stickKey ? 0.55 : 0.1;
+      }
+
+      // 3) Trigger / Face buttons — ชิ้นที่อัปเกรดเป็นสีเน้นของร้าน
+      var tf = state.triggerFace;
+      var trigUp = (tf === 'clicky' || tf === 'full');
+      var faceUp = (tf === 'full');
+      if (mats.trigger) {
+        if (tinters && tinters.accent && tinters.accent.trigger) {
+          tinters.accent.trigger(trigUp ? ACCENT_LIME : null);
+        } else {
+          setColor(mats.trigger, trigUp ? ACCENT_LIME : 0x24272C);
+        }
+        mats.trigger.metalness = trigUp ? 0.45 : 0.1;
+      }
+      if (mats.button) {
+        if (tinters && tinters.accent && tinters.accent.button) {
+          tinters.accent.button(faceUp ? ACCENT_LIME : null);
+        } else {
+          setColor(mats.button, faceUp ? ACCENT_LIME : 0x2A2D33);
+        }
+        mats.button.metalness = faceUp ? 0.4 : 0.1;
+      }
+
+      // 4) ปุ่มหลัง — จำนวน / ด้าน / ความสูง
+      var count = state.paddles, side = state.paddleSide;
+      var h = PADDLE_HEIGHT[state.paddleHeight] || PADDLE_HEIGHT.standard;
+      var show = { left: false, right: false };
+      if (count === 'two') { show.left = show.right = true; }
+      else if (count === 'one') {
+        if (side === 'left') show.left = true;
+        else if (side === 'right') show.right = true;
+      }
+      Object.keys(parts.paddles).forEach(function (k) {
+        var p = parts.paddles[k];
+        p.holder.visible = show[k];
+        if (show[k] && p.height !== (state.paddleHeight || 'standard')) {
+          p.mesh.geometry.dispose();
+          p.mesh.geometry = buildPaddleGeo(THREE, h);
+          seatPaddle(THREE, p.mesh);   // ครีบสูงขึ้น/เตี้ยลง ต้องจัดให้แนบผิวใหม่
+          p.height = state.paddleHeight || 'standard';
+        }
+      });
+
+      // 5) Light bar ตามบอร์ด PCB (วาดทับเทกซ์เจอร์ไฟที่อบมากับโมเดล)
+      var lb = (state.pcb && PCB_LIGHT[state.pcb]) || PCB_LIGHT.__default;
+      if (tinters && tinters.lightbar) tinters.lightbar(lb);
+      if (lbMat) lbMat.emissiveIntensity = state.pcb ? 2.2 : 1.0;
+
+      current = state;
+      return tweens;
+    }
+
+    applyState({}, true);
+
+    return {
+      group: group,
+      parts: parts,
+      materials: mats,
+      applyState: applyState,
+      isGlb: true,
+      getState: function () { return current; },
+      dispose: function () {
+        group.traverse(function (o) {
+          if (o.geometry) o.geometry.dispose();
+          if (o.material) {
+            var list = Array.isArray(o.material) ? o.material : [o.material];
+            list.forEach(function (m) {
+              Object.keys(m).forEach(function (k) {
+                var v = m[k];
+                if (v && v.isTexture) v.dispose();
+              });
+              m.dispose();
+            });
+          }
+        });
+      }
+    };
+  }
+
   function createControllerModel(THREE, opts) {
     opts = opts || {};
     enableColorManagement(THREE);
@@ -856,16 +1033,17 @@
     [-1, 1].forEach(function (s) {
       var key = s < 0 ? 'left' : 'right';
       var holder = new THREE.Group();
-      /* วางบนสันด้านในของฝาหลังด้ามจับ ตรงที่นิ้วกลาง/นางพาดพอดี
-       * ผิวหลังแถวนี้อยู่ราว y = -3.2 (วัดจากตัวโมเดลจริง) จึงฝังฐานครีบ
-       * ไว้ในเปลือกนิดหนึ่งแล้วให้ปลายยื่นพ้นลงมา
-       * แนวยาวของครีบเอียงตามแกนด้ามจับ (GRIP_A -> GRIP_B ราว 9°) */
-      holder.position.set(s * 5.42, -3.02, 2.15);
+      /* วางแนบผิวฝาหลังด้ามจับ ตรงที่นิ้วกลาง/นางพาดพอดี
+       * วัดจากโมเดลจริง: ผิวฝาหลังแถวนี้อยู่ราว y = -3.42
+       * (ท้องด้ามขวาลึกสุดที่ x 5.98, y -3.51, z 3.20)
+       * จุดหมุนของ holder = "ผิวเปลือก" ส่วนตัวครีบจะถูกเลื่อนลงให้ฐานจมพอดี */
+      holder.position.set(s * 6.36, -3.51, 3.23);
       holder.rotation.set(0.05, s * 0.16, s * 0.30);
       holder.visible = false;
       group.add(holder);
       var mesh = new THREE.Mesh(buildPaddleGeo(THREE, PADDLE_HEIGHT.standard), mats.paddle);
       mesh.rotation.y = Math.PI / 2;   // แนวยาวของครีบหันไปตามแกน z
+      seatPaddle(THREE, mesh);
       holder.add(mesh);
       parts.paddles[key] = { holder: holder, mesh: mesh, height: 'standard' };
     });
@@ -1041,12 +1219,39 @@
       return api;
     }
 
-    loadThree(options.threeSources).then(function (THREE) {
-      setup(THREE);
-    }).catch(function (err) {
-      api.failed = true;
-      if (options.onFail) options.onFail(err);
-    });
+    /* โหลดแบบ lazy: ไฟล์โมเดลใหญ่ ~6.8MB + three.js อีก 0.6MB
+     * ถ้าโหลดตั้งแต่เปิดหน้าแรก คนที่ไม่ได้เข้าหน้าสั่งทำจะเสียเน็ตฟรี
+     * จึงรอจนกล่องพรีวิว "ถูกมองเห็นจริง" ก่อนค่อยเริ่มโหลด */
+    var visibilityWatcher = null;
+    function begin() {
+      loadThree(options.threeSources).then(function (THREE) {
+        setup(THREE);
+      }).catch(function (err) {
+        api.failed = true;
+        if (options.onFail) options.onFail(err);
+      });
+    }
+
+    if (options.lazy === false || typeof IntersectionObserver === 'undefined') {
+      begin();
+    } else {
+      visibilityWatcher = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting) {
+            visibilityWatcher.disconnect();
+            visibilityWatcher = null;
+            begin();
+            return;
+          }
+        }
+      }, { rootMargin: '250px' });
+      visibilityWatcher.observe(container);
+    }
+
+    // ถ้าโดน dispose ก่อนจะเริ่มโหลด ต้องเลิกเฝ้าด้วย
+    api.dispose = function () {
+      if (visibilityWatcher) { visibilityWatcher.disconnect(); visibilityWatcher = null; }
+    };
 
     function setup(THREE) {
       enableColorManagement(THREE);
@@ -1086,10 +1291,40 @@
         envTex.dispose();
       }
 
-      var model = createControllerModel(THREE, {});
+      /* โมเดล: ใช้ไฟล์ DS4 ของจริงก่อน (models/ds4.glb)
+       * ถ้าโหลดไม่ได้ (ไฟล์หาย / เน็ตพัง) ค่อยตกไปใช้โมเดลที่ปั้นด้วยโค้ด
+       * ลูกค้าจะยังเห็นพรีวิวเสมอ ไม่มีทางเจอกล่องว่าง */
+      var model = null;
       var pivot = new THREE.Group();
-      pivot.add(model.group);
       scene.add(pivot);
+      var dirty = true;   // ประกาศไว้ก่อน installModel จะได้สั่งวาดใหม่ได้
+
+      function installModel(m) {
+        if (model) { pivot.remove(model.group); model.dispose(); }
+        model = m;
+        pivot.add(model.group);
+        if (pending) model.applyState(pending, true);
+        dirty = true;
+      }
+
+      installModel(createControllerModel(THREE, {}));
+
+      var glbLib = (typeof root !== 'undefined' && root.MosuDS4Model) ||
+                   (typeof window !== 'undefined' && window.MosuDS4Model) || null;
+      if (glbLib && options.useGlb !== false) {
+        glbLib.load(THREE, {
+          url: options.modelUrl || 'models/ds4.glb',
+          loaderSources: options.loaderSources
+        }).then(function (prepared) {
+          installModel(wrapGlbModel(THREE, prepared));
+          if (options.onModelUpgrade) options.onModelUpgrade('glb');
+        }).catch(function (err) {
+          // เงียบไว้ — โมเดลที่ปั้นด้วยโค้ดยังแสดงอยู่แล้ว
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[3D] ใช้โมเดลสำรอง (โหลด .glb ไม่สำเร็จ):', err && err.message);
+          }
+        });
+      }
 
       // เงาใต้เครื่อง
       var shadowTex = makeShadowTexture(THREE);
@@ -1109,7 +1344,6 @@
       var target = { theta: view.theta, phi: view.phi, dist: view.dist };
       var autoRotate = options.autoRotate !== false;
       var engaged = false;
-      var dirty = true;
       var tweens = [];
       var lookAt = new THREE.Vector3(0, -0.25, 0);
 

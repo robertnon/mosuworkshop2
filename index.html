@@ -13,6 +13,7 @@
   <script src="./image-slot.js"></script>
   <!-- โมเดลคอนโทรลเลอร์ 3 มิติ (ปั้นด้วยโค้ด ไม่ต้องโหลดไฟล์โมเดล)
        three.js จะถูกโหลดทีหลังแบบ lazy ตอนเปิดหน้าฟอร์มจริง -->
+  <script src="./controller-3d-glb.js"></script>
   <script src="./controller-3d.js"></script>
   <style>
     :root {
@@ -3052,6 +3053,32 @@
         linear-gradient(170deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.28));
     }
 
+    /* เครดิตเจ้าของโมเดล 3 มิติ — มุมขวาล่างของกล่องพรีวิว
+       ต้องแสดงตลอดตามสัญญาอนุญาต CC BY 4.0 ห้ามลบออก */
+    .preview3d-credit {
+      position: absolute;
+      right: 8px;
+      bottom: 6px;
+      z-index: 3;
+      font-size: 10px;
+      line-height: 1.3;
+      letter-spacing: .01em;
+      color: rgba(255, 255, 255, 0.45);
+      text-decoration: none;
+      background: rgba(0, 0, 0, 0.32);
+      border-radius: 5px;
+      padding: 2px 6px;
+      pointer-events: auto;
+      transition: color .16s ease, background-color .16s ease;
+    }
+
+    .preview3d-credit:hover,
+    .preview3d-credit:focus-visible {
+      color: rgba(255, 255, 255, 0.85);
+      background: rgba(0, 0, 0, 0.5);
+      text-decoration: underline;
+    }
+
     .preview3d-stage:active { cursor: grabbing; }
     .preview3d-stage canvas { display: block; width: 100%; height: 100%; }
 
@@ -3981,6 +4008,11 @@
                 <span class="preview3d-spinner" aria-hidden="true"></span>
                 <span>กำลังโหลดโมเดล 3 มิติ…</span>
               </div>
+              <!-- เครดิตเจ้าของโมเดล (บังคับตามสัญญาอนุญาต CC BY 4.0) -->
+              <a class="preview3d-credit" id="preview3dCredit"
+                 href="https://sketchfab.com/3d-models/dualshock-4-playstation-controller-e3c2f0dc16524fc19cdde45bad1de1a9"
+                 target="_blank" rel="noopener noreferrer"
+                 title="DualShock 4 PlayStation Controller โดย shaielwolf — สัญญาอนุญาต CC BY 4.0">Model created by shaielwolf</a>
             </div>
             <div class="preview3d-toolbar">
               <div class="preview3d-views" role="group" aria-label="มุมกล้อง">
