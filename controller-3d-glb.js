@@ -124,6 +124,125 @@
   }
 
   // คัดลอกค่าตั้งต้นของเทกซ์เจอร์เดิม (flipY / wrap / color space) มาให้ครบ
+  /* ===================================================================
+   * ลบโลโก้/ยี่ห้อออกจากโมเดล
+   * -------------------------------------------------------------------
+   * ไฟล์ต้นฉบับมีคำว่า SONY, โลโก้ PlayStation และฉลากข้อกำหนดหลังเครื่อง
+   * (รุ่น CUH-ZCT2E, บาร์โค้ด, CE, MADE IN CHINA ฯลฯ) อบมาในเทกซ์เจอร์
+   * ร้านไม่ได้เป็นตัวแทนของ Sony การโชว์โลโก้เขาบนหน้าสั่งทำอาจทำให้เข้าใจผิด
+   * จึงลบออกให้เหลือเป็นพลาสติกเปล่า
+   *
+   * จุดที่ต้องระวัง: รอยพวกนี้ไม่ได้อยู่แค่ในแผนที่สี แต่ไปอยู่ใน
+   * "แผนที่ความมัน" (roughness) ด้วย ถ้าลบแต่สีจะเหลือเงาจางๆ เป็นรูปตัวหนังสือ
+   * ตอนโดนไฟส่อง เลยต้องลบทั้งสองแผนที่พร้อมกัน
+   *
+   * พิกัดด้านล่างวัดมาจากไฟล์จริง (เทกซ์เจอร์ขนาด 1024x1024)
+   * เก็บเป็นสัดส่วน 0..1 เผื่อวันหลังเปลี่ยนไฟล์เป็นความละเอียดอื่น
+   * =================================================================== */
+  var BRANDING = {
+    // ฝาหลัง (MAT_2): คำว่า SONY ที่คอเครื่อง + ฉลากข้อกำหนดแผ่นใหญ่
+    shellBack: [
+      { x0: 0.380, y0: 0.030, x1: 0.545, y1: 0.076, note: 'SONY ที่คอเครื่อง' },
+      { x0: 0.185, y0: 0.495, x1: 0.815, y1: 0.700, note: 'ฉลากข้อกำหนด/บาร์โค้ด' }
+    ],
+    // ปุ่มหน้า (MAT_5): โลโก้ PlayStation บนปุ่ม PS
+    button: [
+      { x0: 0.095, y0: 0.110, x1: 0.260, y1: 0.240, note: 'โลโก้ PS บนปุ่มกลาง' }
+    ]
+  };
+
+  /* ทาสีทับพื้นที่ที่ระบุ ด้วยสีเฉลี่ยของพลาสติกรอบๆ กรอบนั้น
+   * (ไม่ใช้สีตายตัว เพราะแต่ละแผนที่/แต่ละจุดเฉดไม่เท่ากัน) */
+  function erasePatches(ctx, w, h, patches, opts) {
+    opts = opts || {};
+    var darkOnly = opts.darkOnly !== false;   // เก็บตัวอย่างเฉพาะพลาสติก ไม่เอาพื้นหลัง UV
+    var img = ctx.getImageData(0, 0, w, h);
+    var d = img.data;
+    patches.forEach(function (p) {
+      var x0 = Math.max(0, Math.floor(p.x0 * w)), x1 = Math.min(w - 1, Math.ceil(p.x1 * w));
+      var y0 = Math.max(0, Math.floor(p.y0 * h)), y1 = Math.min(h - 1, Math.ceil(p.y1 * h));
+      // ---- 1) หาสีพลาสติกจากขอบรอบกรอบ ----
+      var pad = Math.max(6, Math.round(0.012 * w));
+      var sr = 0, sg = 0, sb = 0, sn = 0;
+      for (var yy = y0 - pad; yy <= y1 + pad; yy++) {
+        for (var xx = x0 - pad; xx <= x1 + pad; xx++) {
+          if (xx >= x0 && xx <= x1 && yy >= y0 && yy <= y1) continue;
+          if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+          var k = (yy * w + xx) * 4;
+          var lum = (54 * d[k] + 183 * d[k + 1] + 18 * d[k + 2]) >> 8;
+          if (darkOnly && lum > 70) continue;   // ข้ามพื้นหลังสีเทาอ่อนนอกเกาะ UV
+          sr += d[k]; sg += d[k + 1]; sb += d[k + 2]; sn++;
+        }
+      }
+      if (!sn) return;
+      var fr = Math.round(sr / sn), fg = Math.round(sg / sn), fb = Math.round(sb / sn);
+      // ---- 2) ทาทับ แต่เฉพาะพิกเซลที่ยังอยู่ในเนื้อพลาสติก ----
+      for (var y = y0; y <= y1; y++) {
+        for (var x = x0; x <= x1; x++) {
+          var i = (y * w + x) * 4;
+          var l = (54 * d[i] + 183 * d[i + 1] + 18 * d[i + 2]) >> 8;
+          // พื้นหลังนอกเกาะ UV (เทาอ่อนสม่ำเสมอ) ต้องไม่แตะ ไม่งั้นขอบชิ้นงานจะเพี้ยน
+          if (darkOnly && l > 150 && !insideIsland(d, w, h, x, y)) continue;
+          d[i] = fr; d[i + 1] = fg; d[i + 2] = fb;
+        }
+      }
+    });
+    ctx.putImageData(img, 0, 0);
+  }
+
+  // มีพลาสติกเข้มล้อมอยู่ทั้ง 4 ทิศไหม (ใช้แยก "ตัวหนังสือบนชิ้นงาน" ออกจาก "พื้นหลัง")
+  function insideIsland(d, w, h, x, y) {
+    var reach = Math.round(0.13 * w), hit = 0;
+    var dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    for (var t = 0; t < 4; t++) {
+      for (var i = 1; i <= reach; i++) {
+        var nx = x + dirs[t][0] * i, ny = y + dirs[t][1] * i;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) break;
+        var k = (ny * w + nx) * 4;
+        if (((54 * d[k] + 183 * d[k + 1] + 18 * d[k + 2]) >> 8) <= 70) { hit++; break; }
+      }
+    }
+    return hit === 4;
+  }
+
+  /* คืนเทกซ์เจอร์ใหม่ที่ลบโลโก้ออกแล้ว (ถ้าทำไม่ได้คืน null ให้ใช้ของเดิม) */
+  function eraseFromTexture(THREE, tex, patches, opts) {
+    if (!tex || !tex.image) return null;
+    var w = tex.image.width, h = tex.image.height;
+    if (!w || !h) return null;
+    var canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    var ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(tex.image, 0, 0, w, h);
+    try { erasePatches(ctx, w, h, patches, opts); }
+    catch (e) { return null; }
+    return cloneTexSettings(THREE, tex, new THREE.CanvasTexture(canvas));
+  }
+
+  /* ลบโลโก้ออกจากทุกแผนที่ของวัสดุที่ระบุ
+   * ทำก่อนสร้างตัวย้อมสี เพื่อให้ตัวย้อมสีอ่าน "ภาพที่ลบแล้ว" ไปใช้ต่อ */
+  function stripBranding(THREE, materials) {
+    if (typeof document === 'undefined') return;
+    Object.keys(BRANDING).forEach(function (role) {
+      var m = materials[role];
+      if (!m) return;
+      var patches = BRANDING[role];
+      // แผนที่สี
+      var t = eraseFromTexture(THREE, m.map, patches);
+      if (t) m.map = t;
+      // แผนที่ความมัน — รอยตัวหนังสือฝังอยู่ในนี้ด้วย ถ้าไม่ลบจะเห็นเป็นเงาจาง
+      if (m.roughnessMap) {
+        var r = eraseFromTexture(THREE, m.roughnessMap, patches, { darkOnly: false });
+        if (r) {
+          m.roughnessMap = r;
+          if (m.metalnessMap === m.roughnessMap || !m.metalnessMap) m.metalnessMap = r;
+        }
+      }
+      m.needsUpdate = true;
+    });
+  }
+
   function cloneTexSettings(THREE, src, dst) {
     dst.flipY = src.flipY;
     dst.wrapS = src.wrapS; dst.wrapT = src.wrapT;
@@ -300,6 +419,9 @@
         new THREE.GLTFLoader().load(url, function (gltf) {
           try {
             var prepared = prepareScene(THREE, gltf.scene);
+            // ลบ SONY / โลโก้ PS / ฉลากข้อกำหนด ก่อนสร้างตัวย้อมสี
+            // (ตัวย้อมสีจะได้ก๊อปปี้ "ภาพที่ลบแล้ว" ไปใช้ต่อ)
+            stripBranding(THREE, prepared.materials);
             prepared.tinters = makeTinters(THREE, prepared);
             resolve(prepared);
           } catch (e) { reject(e); }
@@ -314,8 +436,11 @@
     load: load,
     prepareScene: prepareScene,
     makeTinters: makeTinters,
+    stripBranding: stripBranding,
+    erasePatches: erasePatches,
     TARGET_WIDTH_CM: TARGET_WIDTH_CM,
     MAT_ROLE: MAT_ROLE,
-    SHELL_ROLES: SHELL_ROLES
+    SHELL_ROLES: SHELL_ROLES,
+    BRANDING: BRANDING
   };
 });
