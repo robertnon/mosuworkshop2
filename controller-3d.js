@@ -48,11 +48,15 @@
     tmr:  { color: 0xFFC44D, label: 'TMR' }
   };
 
-  // สีไฟ Light Bar ตามบอร์ด PCB ที่เลือก
+  // สีไฟ Light Bar — ใช้ "สีขาว" ทุกกรณี
+  // (เดิมเปลี่ยนสีตามบอร์ด PCB: suiovoi ฟ้า / hyperstrike ชมพู / ค่าเริ่มต้นน้ำเงิน
+  //  แต่ทางร้านขอให้เป็นสีขาวหมด จึงตั้งเป็นขาวทั้ง 3 ค่า)
+  // ยังแยกความสว่างอยู่ (เลือกบอร์ดแล้วไฟจะสว่างขึ้น) ดูที่ emissiveIntensity ด้านล่าง
+  // ถ้าวันหลังอยากให้ไฟเปลี่ยนสีตามบอร์ดอีก แค่ใส่ค่าสีกลับเข้าไปในนี้
   var PCB_LIGHT = {
-    suiovoi:    0x27B6FF,
-    hyperstrike: 0xFF4D8D,
-    __default:  0x3A6BFF
+    suiovoi:    0xFFFFFF,
+    hyperstrike: 0xFFFFFF,
+    __default:  0xFFFFFF
   };
 
   var ACCENT_LIME = 0xC6FF00;   // สีเน้นของเว็บ ใช้บอกชิ้นที่ "อัปเกรดแล้ว"
