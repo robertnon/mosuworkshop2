@@ -5640,10 +5640,12 @@
       const paddleHeightPreviewBox = document.getElementById('paddleHeightPreviewBox');
       const paddleHeightPreviewImg = document.getElementById('paddleHeightPreviewImg');
 
+      // ?v= ต่อท้ายกันเบราว์เซอร์จำรูปเก่า (v2 = ตอนเปลี่ยนไลต์บาร์ฟ้า -> ขาว)
+      // ถ้าแก้รูปพวกนี้อีก ให้ขยับเลขเป็น v3, v4, ... ด้วย ลูกค้าจะได้เห็นของใหม่ทันที
       const heightImages = {
-        'standard': 'standard-paddles.png',
-        'medium': 'low-paddles.png',
-        'high': 'high-paddles.png'
+        'standard': 'standard-paddles.png?v=2',
+        'medium': 'low-paddles.png?v=2',
+        'high': 'high-paddles.png?v=2'
       };
 
       function updatePaddleHeightPreview() {
