@@ -15,8 +15,9 @@
        three.js จะถูกโหลดทีหลังแบบ lazy ตอนเปิดหน้าฟอร์มจริง -->
   <!-- ?v= ต่อท้ายไว้กันเบราว์เซอร์จำไฟล์เก่า (cache) — ถ้าแก้ 2 ไฟล์นี้แล้วอัปขึ้นโฮสต์
        ให้เปลี่ยนเลขเวอร์ชันด้วย ลูกค้าจะได้เห็นของใหม่ทันที ไม่ต้องกด Ctrl+F5 -->
-  <script src="./controller-3d-glb.js?v=5"></script>
-  <script src="./controller-3d.js?v=5"></script>
+  <script src="./controller-3d-glb.js?v=6"></script>
+  <script src="./controller-3d-ds5.js?v=8"></script>
+  <script src="./controller-3d.js?v=7"></script>
   <style>
     :root {
       --bg: #090A07;
@@ -7297,24 +7298,84 @@
 
         // โชว์โมเดลเฉพาะตอนที่ตรงกับของจริงเท่านั้น:
         //  - โหมด "เปลี่ยนอนาล็อกอย่างเดียว" ไม่ได้แตะตัวเครื่อง จึงไม่ต้องโชว์
-        //  - โมเดลนี้เป็นทรง DualShock 4 ถ้าลูกค้าเลือก PS5 (DualSense) ทรงจะไม่ตรง
-        //    เลยซ่อนไว้ก่อน (ตกไปใช้รูปแบนเดิม) ดีกว่าโชว์ของผิดรุ่นให้ลูกค้าเข้าใจผิด
+        //  - ตอนนี้มีโมเดลครบทั้ง 2 รุ่นแล้ว (DS4 และ DualSense)
+        //    จึงโชว์ได้ทั้ง PS4/PS5 แค่ต้องรอให้ลูกค้าเลือกรุ่นก่อน
         function shouldShow() {
           if (currentMode === 'analogOnly') return false;
           // ยังไม่ได้เลือกรุ่น (PS4/PS5) -> ยังไม่ต้องโชว์โมเดล
-          // เพราะโมเดลเป็นทรง DualShock 4 ถ้าโผล่มาก่อนลูกค้าเลือกรุ่น
-          // จะกลายเป็นการชี้นำว่าร้านทำแต่ PS4 (จริงๆ รับทำ PS5 ด้วย)
+          // เพราะยังไม่รู้ว่าต้องโหลดโมเดลตัวไหน ถ้าเดาผิดจะชี้นำลูกค้า
           if (typeof selectedPlatform === 'undefined' || !selectedPlatform) return false;
-          if (selectedPlatform === 'ps5') return false;
           return true;
         }
 
+        /* โมเดล PS4 กับ PS5 เป็นคนละไฟล์ เวลาสลับรุ่นต้องสร้าง viewer ใหม่
+         * (ทิ้งของเดิมให้เรียบร้อยก่อน กัน WebGL context รั่ว) */
+        var viewerPlatform = null;
+
+        /* เครดิตเจ้าของโมเดล — คนละคนกันระหว่าง PS4 กับ PS5
+         * ทั้งคู่เป็นสัญญาอนุญาต CC BY 4.0 ซึ่ง "บังคับ" ให้แสดงเครดิต
+         * ถ้าลบออกหรือใส่ผิดคน = ผิดเงื่อนไขสัญญาอนุญาต ห้ามลบเด็ดขาด */
+        var MODEL_CREDIT = {
+          ps4: {
+            name: 'Model created by shaielwolf',
+            href: 'https://sketchfab.com/3d-models/dualshock-4-playstation-controller-e3c2f0dc16524fc19cdde45bad1de1a9',
+            title: 'DualShock 4 PlayStation Controller โดย shaielwolf — สัญญาอนุญาต CC BY 4.0'
+          },
+          ps5: {
+            name: 'Model created by Taohid Animation',
+            href: 'https://sketchfab.com/3d-models/ps5-controller-b7bb9c5102a04cb0b1966c6d02bad7d6',
+            title: 'PS5 Controller โดย Taohid Animation — สัญญาอนุญาต CC BY 4.0'
+          }
+        };
+
+        function updateCredit() {
+          var el = document.getElementById('preview3dCredit');
+          if (!el) return;
+          var c = MODEL_CREDIT[selectedPlatform === 'ps5' ? 'ps5' : 'ps4'];
+          el.textContent = c.name;
+          el.href = c.href;
+          el.title = c.title;
+        }
+
+        function buildViewer() {
+          if (viewer) { try { viewer.dispose(); } catch (e) {} viewer = null; }
+          /* ลบเฉพาะ <canvas> ของ viewer ตัวเก่า
+           * ห้ามใช้ stage.innerHTML = '' เพราะจะลบลิงก์เครดิตเจ้าของโมเดลทิ้งไปด้วย
+           * ซึ่งเป็นสิ่งที่สัญญาอนุญาต CC BY 4.0 บังคับให้ต้องแสดง */
+          Array.prototype.slice.call(stage.querySelectorAll('canvas')).forEach(function (c) {
+            if (c.parentNode) c.parentNode.removeChild(c);
+          });
+          updateCredit();
+          viewerPlatform = selectedPlatform;
+          viewer = window.MosuController3D.createViewer(stage, {
+            state: readState(),
+            platform: selectedPlatform,
+            autoRotate: !reducedMotion,
+            onReady: function () {
+              var l = panel.querySelector('.preview3d-loading');
+              if (l) l.remove();
+              updatePreview3D();
+              if (spinBtn) spinBtn.setAttribute('aria-pressed', String(viewer.isAutoRotate()));
+            },
+            onFail: function (err) {
+              if (window.console && console.warn) console.warn('พรีวิว 3 มิติใช้งานไม่ได้:', err);
+              fallbackToFlat();
+            },
+            onEngage: function () {
+              if (hintEl) hintEl.classList.add('is-hidden');
+              if (spinBtn) spinBtn.setAttribute('aria-pressed', 'false');
+            }
+          });
+        }
+
         updatePreview3D = function () {
-          if (!viewer || viewer.failed) return;
           var show = shouldShow();
           panel.hidden = !show;
           if (summaryCol) summaryCol.classList.toggle('has-3d', show);
           if (!show) return;
+          // เพิ่งเลือกรุ่น หรือสลับรุ่น -> สร้าง viewer ใหม่ให้ตรงกับโมเดลของรุ่นนั้น
+          if (!viewer || viewerPlatform !== selectedPlatform) { buildViewer(); return; }
+          if (viewer.failed) return;
           var st = readState();
           viewer.setState(st);
           renderBadges(st);
@@ -7325,23 +7386,8 @@
         panel.hidden = !shouldShow();
         if (summaryCol) summaryCol.classList.toggle('has-3d', shouldShow());
 
-        viewer = window.MosuController3D.createViewer(stage, {
-          state: readState(),
-          autoRotate: !reducedMotion,
-          onReady: function () {
-            if (loadingEl) loadingEl.remove();
-            updatePreview3D();
-            if (spinBtn) spinBtn.setAttribute('aria-pressed', String(viewer.isAutoRotate()));
-          },
-          onFail: function (err) {
-            if (window.console && console.warn) console.warn('พรีวิว 3 มิติใช้งานไม่ได้:', err);
-            fallbackToFlat();
-          },
-          onEngage: function () {
-            if (hintEl) hintEl.classList.add('is-hidden');
-            if (spinBtn) spinBtn.setAttribute('aria-pressed', 'false');
-          }
-        });
+        // สร้าง viewer เมื่อรู้รุ่นแล้วเท่านั้น (ก่อนหน้านั้นยังไม่ต้องโหลดไฟล์โมเดล)
+        if (shouldShow()) buildViewer();
 
         viewBtns.forEach(function (btn) {
           btn.addEventListener('click', function () {

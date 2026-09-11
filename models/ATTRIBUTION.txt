@@ -1,3 +1,31 @@
+ds5.glb
+=======
+
+Model: "PS5 Controller" (DualSense)
+Author: Taohid Animation (https://sketchfab.com/taohidanimation)
+Source: https://sketchfab.com/3d-models/ps5-controller-b7bb9c5102a04cb0b1966c6d02bad7d6
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+         https://creativecommons.org/licenses/by/4.0/
+
+Obtained via the dualsense-studio project by SafaElmali
+(https://github.com/SafaElmali/dualsense-studio), file controller/dualsense.glb.
+That project's controller/controller-view.js was also used as the reference for
+the per-material metalness/roughness values in controller-3d-ds5.js.
+
+Credit is displayed in the bottom-right corner of the 3D preview box as
+"Model created by Taohid Animation" whenever the PS5 model is on screen,
+linking back to the source page. Do not remove it.
+
+--------------------------------------------------------------------------
+หมายเหตุภาษาไทย
+
+โมเดล PS5 นี้เป็นของคุณ Taohid Animation ใช้สัญญาอนุญาต CC BY 4.0
+ใช้เชิงพาณิชย์ได้ แก้ไขได้ แต่ "ต้องให้เครดิตเจ้าของ" เสมอ
+เครดิตจะสลับไปเป็นชื่อคนนี้อัตโนมัติเมื่อลูกค้าเลือกรุ่น PS5
+(ตอนเลือก PS4 จะกลับไปเป็นเครดิตของคุณ shaielwolf) กรุณาอย่าลบออก
+
+==========================================================================
+
 ds4.glb
 =======
 

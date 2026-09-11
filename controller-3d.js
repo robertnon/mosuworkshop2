@@ -743,7 +743,8 @@
     return mesh;
   }
 
-  function wrapGlbModel(THREE, prepared) {
+  function wrapGlbModel(THREE, prepared, opts) {
+    opts = opts || {};
     var group = prepared.root;
     var mats = prepared.materials;
     var parts = prepared.parts;
@@ -776,10 +777,17 @@
     var lbMat = mats.shellBack || null;
     if (lbMat) mats.lightbar = lbMat;
 
+    /* สีตั้งต้นตอนลูกค้า "ส่งจอยของตัวเองมา" (ยังไม่ได้เลือกเปลี่ยนกรอบ)
+     * DS4 ที่ขายทั่วไปเป็นสีดำ แต่ DualSense เป็นสีขาว
+     * ถ้าใช้ค่าเดียวกันทั้งคู่ พรีวิว PS5 จะกลายเป็นจอยดำซึ่งไม่ตรงกับของจริง */
+    var stockDefault = (opts.platform === 'ps5')
+      ? SHELL_COLORS.white
+      : SHELL_COLORS.__default;
+
     function shellDefLocal(state) {
       var key = state && state.shellColor;
-      if (state && state.shell === 'withController') return SHELL_COLORS.__default;
-      return (key && SHELL_COLORS[key]) || SHELL_COLORS.__default;
+      if (state && state.shell === 'withController') return stockDefault;
+      return (key && SHELL_COLORS[key]) || stockDefault;
     }
 
     function applyState(state, instant) {
@@ -1313,14 +1321,24 @@
 
       installModel(createControllerModel(THREE, {}));
 
-      var glbLib = (typeof root !== 'undefined' && root.MosuDS4Model) ||
-                   (typeof window !== 'undefined' && window.MosuDS4Model) || null;
+      /* เลือกโมเดลตามรุ่นที่ลูกค้าเลือก
+       *   ps5 -> DualSense (models/ds5.glb)  ใช้ MosuDS5Model
+       *   อื่นๆ -> DualShock 4 (models/ds4.glb) ใช้ MosuDS4Model
+       * ทั้งสองโมดูล export API ชุดเดียวกัน (load -> prepared) จึงใช้
+       * wrapGlbModel() ตัวเดียวกันต่อได้เลย */
+      var pickLib = function (name) {
+        return (typeof root !== 'undefined' && root[name]) ||
+               (typeof window !== 'undefined' && window[name]) || null;
+      };
+      var isPs5 = (options.platform === 'ps5');
+      var glbLib = isPs5 ? pickLib('MosuDS5Model') : pickLib('MosuDS4Model');
+      var defaultUrl = isPs5 ? 'models/ds5.glb?v=1' : 'models/ds4.glb?v=3';
       if (glbLib && options.useGlb !== false) {
         glbLib.load(THREE, {
-          url: options.modelUrl || 'models/ds4.glb?v=3',
+          url: options.modelUrl || defaultUrl,
           loaderSources: options.loaderSources
         }).then(function (prepared) {
-          installModel(wrapGlbModel(THREE, prepared));
+          installModel(wrapGlbModel(THREE, prepared, { platform: options.platform }));
           if (options.onModelUpgrade) options.onModelUpgrade('glb');
         }).catch(function (err) {
           // เงียบไว้ — โมเดลที่ปั้นด้วยโค้ดยังแสดงอยู่แล้ว
