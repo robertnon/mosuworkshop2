@@ -1313,7 +1313,7 @@
                    (typeof window !== 'undefined' && window.MosuDS4Model) || null;
       if (glbLib && options.useGlb !== false) {
         glbLib.load(THREE, {
-          url: options.modelUrl || 'models/ds4.glb',
+          url: options.modelUrl || 'models/ds4.glb?v=3',
           loaderSources: options.loaderSources
         }).then(function (prepared) {
           installModel(wrapGlbModel(THREE, prepared));

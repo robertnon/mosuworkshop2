@@ -413,7 +413,9 @@
 
   function load(THREE, opts) {
     opts = opts || {};
-    var url = opts.url || 'models/ds4.glb';
+    // ?v= กันเบราว์เซอร์จำไฟล์เก่า (ไฟล์นี้ถูกลบโลโก้ออกแล้ว ถ้าเบราว์เซอร์
+    // ยังใช้ของเก่าที่ cache ไว้ จะยังเห็นโลโก้อยู่)
+    var url = opts.url || 'models/ds4.glb?v=3';
     return loadGLTFLoader(THREE, opts.loaderSources).then(function () {
       return new Promise(function (resolve, reject) {
         new THREE.GLTFLoader().load(url, function (gltf) {
