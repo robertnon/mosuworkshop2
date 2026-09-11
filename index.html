@@ -15,8 +15,8 @@
        three.js จะถูกโหลดทีหลังแบบ lazy ตอนเปิดหน้าฟอร์มจริง -->
   <!-- ?v= ต่อท้ายไว้กันเบราว์เซอร์จำไฟล์เก่า (cache) — ถ้าแก้ 2 ไฟล์นี้แล้วอัปขึ้นโฮสต์
        ให้เปลี่ยนเลขเวอร์ชันด้วย ลูกค้าจะได้เห็นของใหม่ทันที ไม่ต้องกด Ctrl+F5 -->
-  <script src="./controller-3d-glb.js?v=3"></script>
-  <script src="./controller-3d.js?v=3"></script>
+  <script src="./controller-3d-glb.js?v=4"></script>
+  <script src="./controller-3d.js?v=4"></script>
   <style>
     :root {
       --bg: #090A07;
@@ -3222,6 +3222,13 @@
     /* ถ้ามีพรีวิว 3 มิติแล้ว ซ่อนรูปแบนเดิมทิ้ง (โชว์กลับมาเมื่อ 3D ใช้ไม่ได้) */
     .summary-col.has-3d .preview-frame-placeholder { display: none; }
 
+    /* ยังไม่ได้เลือกรุ่น (PS4/PS5) -> ซ่อนพรีวิวทุกแบบ
+       เพราะรูป/โมเดลที่มีเป็นทรง DualShock 4 ถ้าโผล่มาก่อนลูกค้าเลือกรุ่น
+       จะกลายเป็นการชี้นำว่าร้านทำแต่ PS4 (จริงๆ รับทำ PS5 ด้วย) */
+    .summary-col.no-platform .preview3d,
+    .summary-col.no-platform .preview-frame-placeholder,
+    .summary-col.no-platform .svg-preview-container { display: none; }
+
     /* ===================================================================
        SVG CONTROLLER PREVIEW STYLES
        =================================================================== */
@@ -5283,6 +5290,20 @@
         } else {
           computeAndRender();
         }
+        /* ยังไม่ได้เลือกรุ่น PS4/PS5 -> ซ่อนพรีวิวคอนโทรลเลอร์ทุกแบบ
+         * (ทั้ง 3 มิติ, รูปแบน และ SVG) เพราะทุกอันเป็นทรง DualShock 4
+         * ถ้าโชว์ก่อนลูกค้าเลือกรุ่น จะเหมือนบอกว่าร้านทำแต่ PS4
+         * โหมด "เปลี่ยนอนาล็อกอย่างเดียว" ไม่มีขั้นเลือกรุ่น จึงไม่ต้องรอ */
+        var summaryColEl = document.getElementById('summaryCol');
+        if (summaryColEl) {
+          // ถือว่า "ยังไม่ได้เลือกรุ่น" เมื่อ (ก) ยังไม่เคยเลือก หรือ
+          // (ข) ลูกค้ากด "เปลี่ยนรุ่น" จนการ์ดเลือกรุ่นกลับมาโชว์ (กำลังเลือกใหม่อยู่)
+          // เช็คจากการ์ดที่โชว์อยู่แทนการล้างค่า selectedPlatform เพราะค่านั้นยังต้องใช้คิดราคา
+          var pickerEl = document.getElementById('platformSelect');
+          var pickerOpen = pickerEl && !pickerEl.hidden;
+          var needPlatform = (currentMode !== 'analogOnly') && (!selectedPlatform || pickerOpen);
+          summaryColEl.classList.toggle('no-platform', needPlatform);
+        }
         if (typeof updateStepTracker === 'function') updateStepTracker();
         if (typeof updateConfigPreview === 'function') updateConfigPreview();
         if (typeof updateSvgPreview === 'function') updateSvgPreview();
@@ -6094,6 +6115,8 @@
           platformSelectEl.hidden = false;
           presetStepAfterPlatform.hidden = true;
           if (presetFieldTitle) presetFieldTitle.textContent = 'เลือกรุ่นคอนโทรลเลอร์';
+          // ซ่อนพรีวิวระหว่างที่ลูกค้ากำลังเลือกรุ่นใหม่ (ดูเงื่อนไขใน rerender)
+          rerender();
         });
       }
 
@@ -7276,7 +7299,11 @@
         //    เลยซ่อนไว้ก่อน (ตกไปใช้รูปแบนเดิม) ดีกว่าโชว์ของผิดรุ่นให้ลูกค้าเข้าใจผิด
         function shouldShow() {
           if (currentMode === 'analogOnly') return false;
-          if (typeof selectedPlatform !== 'undefined' && selectedPlatform === 'ps5') return false;
+          // ยังไม่ได้เลือกรุ่น (PS4/PS5) -> ยังไม่ต้องโชว์โมเดล
+          // เพราะโมเดลเป็นทรง DualShock 4 ถ้าโผล่มาก่อนลูกค้าเลือกรุ่น
+          // จะกลายเป็นการชี้นำว่าร้านทำแต่ PS4 (จริงๆ รับทำ PS5 ด้วย)
+          if (typeof selectedPlatform === 'undefined' || !selectedPlatform) return false;
+          if (selectedPlatform === 'ps5') return false;
           return true;
         }
 
