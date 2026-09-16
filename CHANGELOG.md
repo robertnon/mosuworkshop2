@@ -7,7 +7,7 @@
 ## 2026-09-16 (รอบที่ 18b) — PCB options เป็น Full-bleed Image Card
 
 ### เปลี่ยนอะไร (ตาม "อยากได้แบบภาพเต็มทั้ง checkbox")
-- PCB options (SuiOvOi / Hyperstrike)升级为 **full-bleed image card**:
+- PCB options (SuiOvOi / Hyperstrike)เป็น **full-bleed image card**:
   ภาพ PCB ปูเต็มทั้งแถว (object-fit: cover, สูง 180px / มือถือ 150px)
   + scrim ดำไล่ทอนล่าง + ชื่อ/คำอธิบาย overlay ขาวด้านในล่าง
   + ราคาเป็น pill มุมขวาบน + **เลือกแล้ว = badge ✓ ไลม์** มุมซ้ายบน
