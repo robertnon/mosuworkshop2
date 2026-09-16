@@ -3695,7 +3695,7 @@
       padding: 0;
       min-height: 180px;
       overflow: hidden;
-      background: #050604;
+      background: var(--panel);
     }
     .option-pcb .pcb-preview-img {
       position: absolute;
@@ -3705,17 +3705,21 @@
       object-fit: cover;
       border-radius: 0;
       border: none;
-      background: #050604;
+      background: transparent;
+      opacity: 0.45;
+      transition: opacity 0.25s ease;
     }
-    /* scrim ทับด้านล่างให้ข้อความอ่านชัด */
+    .option-pcb:hover .pcb-preview-img { opacity: 0.62; }
+    .option-pcb.selected .pcb-preview-img { opacity: 0.8; }
+    /* scrim เบา — เพียงพอให้ข้อความอ่านชัด ไม่ปิดสีการ์ด */
     .option-pcb::after {
       content: "";
       position: absolute;
       inset: 0;
       background: linear-gradient(180deg,
-        rgba(9, 10, 12, 0.10) 0%,
-        rgba(9, 10, 12, 0.22) 52%,
-        rgba(9, 10, 12, 0.90) 100%);
+        rgba(9, 10, 12, 0) 0%,
+        rgba(9, 10, 12, 0.10) 55%,
+        rgba(9, 10, 12, 0.45) 100%);
       pointer-events: none;
     }
     .option-pcb input {
