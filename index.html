@@ -3687,23 +3687,94 @@
     .preset-card { padding: 16px 18px; }
     .preset-name { font-size: 15px; }
 
-    /* PCB: ภาพอยู่ในแถวตัวเลือก (thumbnail ข้าง radio) — class เดิม pcb-preview-img
-       คงไว้เพราะ JS อ่าน .pcb-col .pcb-preview-img เพื่ออัปเดตพรีวิว */
-    .pcb-preview-img.pcb-thumb {
-      width: 76px;
-      height: 58px;
-      object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid var(--line);
-      background: var(--panel-2);
-      flex: 0 0 auto;
+    /* PCB: FULL-BLEED IMAGE CARD — ภาพปูเต็มทั้งแถว checkbox + ข้อความ overlay
+       (class เดิม pcb-preview-img + ตำแหน่งใน .pcb-col คงไว้ — JS อ่าน .src เพื่อพรีวิว) */
+    .option-pcb {
+      position: relative;
+      display: block;
+      padding: 0;
+      min-height: 180px;
+      overflow: hidden;
+      background: #050604;
     }
-    .option.selected .pcb-thumb {
+    .option-pcb .pcb-preview-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 0;
+      border: none;
+      background: #050604;
+    }
+    /* scrim ทับด้านล่างให้ข้อความอ่านชัด */
+    .option-pcb::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg,
+        rgba(9, 10, 12, 0.10) 0%,
+        rgba(9, 10, 12, 0.22) 52%,
+        rgba(9, 10, 12, 0.90) 100%);
+      pointer-events: none;
+    }
+    .option-pcb input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+    }
+    .option-pcb .option-text {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 14px;
+      z-index: 1;
+    }
+    .option-pcb .option-title {
+      font-size: 16.5px;
+      color: #FFFFFF;
+    }
+    .option-pcb .option-sub {
+      color: rgba(255, 255, 255, 0.72);
+    }
+    .option-pcb .option-price {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      z-index: 1;
+      padding: 4px 11px;
+      border-radius: 999px;
+      background: rgba(9, 10, 12, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #F2F5EC;
+    }
+    /* เลือกแล้ว: badge ✓ ไลม์ (border/glow ใช้ .option.selected เดิม) */
+    .option-pcb.selected::before {
+      content: "✓";
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      z-index: 2;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--copper);
+      color: #090A0C;
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 0 14px rgba(var(--glow-rgb), 0.55);
+    }
+    .option-pcb.selected .option-price {
       border-color: var(--copper);
-      box-shadow: 0 0 8px rgba(var(--glow-rgb), 0.25);
+      color: var(--copper-bright);
     }
     @media (max-width: 640px) {
-      .pcb-preview-img.pcb-thumb { width: 56px; height: 46px; }
+      .option-pcb { min-height: 150px; }
     }
 
     /* --- 2. หัวข้อ step: ใหญ่ชัด (badge + eyebrow คงไว้) --- */

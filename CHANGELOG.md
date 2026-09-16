@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-09-16 (รอบที่ 18b) — PCB options เป็น Full-bleed Image Card
+
+### เปลี่ยนอะไร (ตาม "อยากได้แบบภาพเต็มทั้ง checkbox")
+- PCB options (SuiOvOi / Hyperstrike)升级为 **full-bleed image card**:
+  ภาพ PCB ปูเต็มทั้งแถว (object-fit: cover, สูง 180px / มือถือ 150px)
+  + scrim ดำไล่ทอนล่าง + ชื่อ/คำอธิบาย overlay ขาวด้านในล่าง
+  + ราคาเป็น pill มุมขวาบน + **เลือกแล้ว = badge ✓ ไลม์** มุมซ้ายบน
+  (border/glow ใช้ .option.selected เดิม, radio ซ่อนแต่ focusable — keyboard ยังได้)
+
+### JS
+- ไม่แตะ — img ยัง class `pcb-preview-img` อยู่ใน `.pcb-col` เดิม
+
+### หมายเหตุ deployment
+- อัป `index.html` ตัวเดียว (แก้เฉพาะ CSS ใน SELECT LAYER)
+
+---
+
 ## 2026-09-16 (รอบที่ 18) — ภาพ PCB เข้าไปในแถวตัวเลือก (ไอเดียลูกค้า)
 
 ### เปลี่ยนอะไร
