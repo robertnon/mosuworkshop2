@@ -3687,6 +3687,25 @@
     .preset-card { padding: 16px 18px; }
     .preset-name { font-size: 15px; }
 
+    /* PCB: ภาพอยู่ในแถวตัวเลือก (thumbnail ข้าง radio) — class เดิม pcb-preview-img
+       คงไว้เพราะ JS อ่าน .pcb-col .pcb-preview-img เพื่ออัปเดตพรีวิว */
+    .pcb-preview-img.pcb-thumb {
+      width: 76px;
+      height: 58px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      flex: 0 0 auto;
+    }
+    .option.selected .pcb-thumb {
+      border-color: var(--copper);
+      box-shadow: 0 0 8px rgba(var(--glow-rgb), 0.25);
+    }
+    @media (max-width: 640px) {
+      .pcb-preview-img.pcb-thumb { width: 56px; height: 46px; }
+    }
+
     /* --- 2. หัวข้อ step: ใหญ่ชัด (badge + eyebrow คงไว้) --- */
     .field { margin-bottom: 30px; }
     .field-legend { margin-bottom: 14px; }
@@ -3936,28 +3955,24 @@
               </legend>
               <div class="options">
                 <div class="pcb-col">
-                  <div class="pcb-preview-box">
-                    <img class="pcb-preview-img"
+                  <label class="option option-pcb">
+                    <input type="radio" name="pcb" value="suiovoi">
+                    <img class="pcb-preview-img pcb-thumb"
                       src="suiovoi.webp"
                       alt="SuiOvOi 8K PCB" loading="lazy">
-                  </div>
-                  <label class="option">
-                    <input type="radio" name="pcb" value="suiovoi">
                     <span class="option-text">
-                      <span class="option-title">🔲 SuiOvOi 8K</span>
+                      <span class="option-title">SuiOvOi 8K</span>
                       <span class="option-sub" data-th="บอร์ดมาตรฐาน โพลลิ่งเรตสูง" data-en="High-spec board · Ultra-fast response (8000 Hz)">บอร์ดมาตรฐาน โพลลิ่งเรตสูง</span>
                     </span>
                     <span class="option-price">+฿2,000</span>
                   </label>
                 </div>
                 <div class="pcb-col">
-                  <div class="pcb-preview-box">
-                    <img class="pcb-preview-img"
+                  <label class="option option-pcb">
+                    <input type="radio" name="pcb" value="hyperstrike">
+                    <img class="pcb-preview-img pcb-thumb"
                       src="hyperstrike.webp"
                       alt="Hyperstrike 8K PCB" loading="lazy">
-                  </div>
-                  <label class="option">
-                    <input type="radio" name="pcb" value="hyperstrike">
                     <span class="option-text">
                       <span class="option-title">Hyperstrike 8K</span>
                       <span class="option-sub" data-th="บอร์ดสเปกสูง ตอบสนองไว" data-en="High-spec board · Ultra-fast response (8000 Hz)">บอร์ดสเปกสูง ตอบสนองไว</span>

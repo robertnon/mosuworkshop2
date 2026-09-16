@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-09-16 (รอบที่ 18) — ภาพ PCB เข้าไปในแถวตัวเลือก (ไอเดียลูกค้า)
+
+### เปลี่ยนอะไร
+- รูป SuiOvOi 8K / Hyperstrike 8K PCB ย้ายจากกล่องพรีวิวใหญ่เหนือแถว
+  → **thumbnail 76×58px อยู่ในแถวตัวเลือก** (ข้าง radio, ก่อนชื่อ)
+  เลือกแล้ว frame thumbnail กลายเป็นไลม์ + glow เล็ก
+- ตัด wrapper `.pcb-preview-box` + อีโมจิ 🔲 ออกจากชื่อ SuiOvOi (รูปจริงมาแทน)
+- **JS ปลอดภัย**: img ยังอยู่ใน `.pcb-col` เดิม + class `pcb-preview-img`
+  คงอยู่ → `radioInput.closest('.pcb-col').querySelector('.pcb-preview-img')`
+  (อัปเดตพรีวิวบอร์ด) + soldout hide ทั้งคอลัมน์ ทำงานต่อได้
+
+### หมายเหตุ deployment
+- อัป `index.html` ตัวเดียว (HTML: 2 บล็อก pcb-col + CSS: .pcb-thumb ใน SELECT LAYER)
+
+---
+
 ## 2026-09-16 (รอบที่ 17) — หน้าตาการเลือกของใน wizard (ref: 3D configurator option rows)
 
 ### เปลี่ยนอะไร (เฉพาะ index.html — "เอาแค่หน้าตาที่เลือกของ" ไม่เอาสีธีมใหม่)
