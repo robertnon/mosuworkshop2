@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-09-16 (รอบที่ 17) — หน้าตาการเลือกของใน wizard (ref: 3D configurator option rows)
+
+### เปลี่ยนอะไร (เฉพาะ index.html — "เอาแค่หน้าตาที่เลือกของ" ไม่เอาสีธีมใหม่)
+1. **ตัวเลือก = แถวเต็มความกว้าง** — `.options` / `.preset-grid` จาก grid
+   หลายคอลัมน์ → แถวเดียวต่อกัน (title 15px 700 + sub 13px + ราคา mono ติดขวา
+   เมื่อเลือกแล้วราคาสว่างเป็น copper-text)
+2. **หัวข้อ step** — field-title 19px 700 + ช่องว่างชัดขึ้น (badge 00/01 + eyebrow คงไว้)
+3. **Step tracker** — จากกล่อง pill → hairline + **progress bar ไลม์**
+   (20→100% ตามขั้น) + ตัวเลข **"N OF 5"** ฝั่งขวา (pure CSS ผ่าน body:has()
+   — บราวเซอร์ที่ :has ไม่ได้ จะค้าง "1 OF 5" เป็น graceful fallback)
+4. **Next** — ปุ่มใหญ่ขึ้น (13px 34px, 15px 700)
+- ไม่แตะ: 3D preview/layout คอลัมน์, สี/ธีม Fusion, radio/checkbox (JS ใช้),
+  platform-select (ไอคอน PS4/PS5 คง 2 คอลัมน์)
+
+### หมายเหตุ deployment
+- อัป `index.html` ตัวเดียว (additive block "SELECT LAYER" ท้าย <style>
+  — rollback = ลบบล็อกทั้งก้อน)
+
+---
+
 ## 2026-09-16 (รอบที่ 15) — ธีม Fusion: Dark เป็นหลัก + ผสม Carbon + ล้างจุดๆ
 
 ### เปลี่ยนอะไร (ตามแผน "ใช้ dark เป็นหลัก แต่เอา carbon มาผสม แล้วเอาพื้นหลังจุดๆ ออก")

@@ -3659,6 +3659,96 @@
     .wizard-summary-total-value {
       color: #4FD8E8;
     }
+
+    /* ============================================================
+       SELECT LAYER — รอบ 17 (ref: หน้าตาการเลือกของใน 3D configurator)
+       แถวตัวเลือกเต็มความกว้าง + progress "N OF 5" + Next ใหญ่
+       สี/ธีมยังเป็น Fusion ทั้งหมด — ปรับหน้าตา layout ของตัวเลือกเท่านั้น
+       ค้นหา marker นี้เพื่อ rollback (ลบทั้งบล็อก)
+       ============================================================ */
+
+    /* --- 1. ตัวเลือก = แถวเต็มความกว้าง (แถวเดียวต่อกัน) --- */
+    .form-col .options,
+    .form-col .preset-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .option { padding: 15px 18px; }
+    .option-title { font-size: 15px; font-weight: 700; }
+    .option-sub { font-size: 13px; line-height: 1.6; }
+    .option-price {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      color: var(--silk-dim);
+      white-space: nowrap;
+    }
+    .option.selected .option-price { color: var(--copper-text); }
+    .preset-card { padding: 16px 18px; }
+    .preset-name { font-size: 15px; }
+
+    /* --- 2. หัวข้อ step: ใหญ่ชัด (badge + eyebrow คงไว้) --- */
+    .field { margin-bottom: 30px; }
+    .field-legend { margin-bottom: 14px; }
+    .field-title { font-size: 19px; font-weight: 700; }
+
+    /* --- 3. Step tracker → hairline + progress bar + "N OF 5" (ฝั่งขวา) --- */
+    .wizard-nav {
+      position: relative;
+      width: 100%;
+      justify-content: flex-start;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      box-shadow: none;
+      padding: 0 0 10px;
+      margin: 0 0 26px;
+    }
+    .wizard-nav::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -1px;
+      height: 2px;
+      width: 20%;
+      background: var(--copper);
+      box-shadow: 0 0 10px rgba(var(--glow-rgb), 0.5);
+      transition: width 0.3s ease;
+    }
+    .wizard-nav::after {
+      content: "1 OF 5";
+      position: absolute;
+      right: 0;
+      top: -2px;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.18em;
+      color: var(--silk-dim);
+    }
+    body:has(#wzNav2.active) .wizard-nav::before { width: 40%; }
+    body:has(#wzNav2.active) .wizard-nav::after { content: "2 OF 5"; }
+    body:has(#wzNav3.active) .wizard-nav::before { width: 60%; }
+    body:has(#wzNav3.active) .wizard-nav::after { content: "3 OF 5"; }
+    body:has(#wzNav4.active) .wizard-nav::before { width: 80%; }
+    body:has(#wzNav4.active) .wizard-nav::after { content: "4 OF 5"; }
+    body:has(#wzNav5.active) .wizard-nav::before { width: 100%; }
+    body:has(#wzNav5.active) .wizard-nav::after { content: "5 OF 5"; }
+    @media (max-width: 640px) {
+      .wizard-nav::after { display: none; }
+    }
+
+    /* --- 4. Footer: Next ใหญ่เด่น --- */
+    .wizard-footer {
+      padding: 18px 0 6px;
+      border-top: 1px solid var(--line);
+    }
+    .wizard-btn-next {
+      padding: 13px 34px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 10px;
+    }
   </style>
 
   <script>
