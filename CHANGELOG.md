@@ -4,6 +4,130 @@
 
 ---
 
+## 2026-09-16 (รอบที่ 15) — ธีม Fusion: Dark เป็นหลัก + ผสม Carbon + ล้างจุดๆ
+
+### เปลี่ยนอะไร (ตามแผน "ใช้ dark เป็นหลัก แต่เอา carbon มาผสม แล้วเอาพื้นหลังจุดๆ ออก")
+1. **พื้นผิวใหม่ (ทั้ง 2 ไฟล์: index + my-orders)** — surface ของธีมหลัก
+   เปลี่ยนจากเขียวมะกอก → **เทาถ่านเย็นของ Carbon**:
+   `--bg #090A0C / --panel #14171C / --panel-2 #1C2027 / --line #262B33 /
+   --copper-dim #39414D / --silk #F0F3F6 / --silk-dim #858E9B`
+2. **คงไว้ (เอกลักษณ์ dark/lime):** ไลม์แบรนด์ #C6FF00, แสง L&S ไลม์
+   (--glow-rgb 198,255,0), corner glow 2 มุมบน (ยังใช้ --corner-glow-* →
+   แผง ?tune=1 ยังทำงาน), haze + stage light
+3. **ล้าง dot grid ทั้งหมด** — body ธีมหลัก + ธีม Carbon (ที่ toggle ถึง)
+   ไม่มีจุดๆ แล้ว + ปิด animation gridMove
+4. **Cyan #4FD8E8** ที่ตัวเลขราคารวม (float-summary-total / wizard-summary-total)
+   = ลายเซ็น accent ของ carbon ที่ผสมเข้ามา (เฉพาะ index)
+
+### สถานะธีมตอนนี้
+- **Fusion (ค่าเริ่มต้น)** = carbon surface + lime glow/brand + cyan total + ไม่มีจุด
+- **Carbon (ปุ่ม toggle)** = เดิม + ล้างจุดแล้ว (ต่างจาก fusion ตรงไม่มี corner glow)
+- Gold / Light = legacy ซ่อน (toggle สลับไม่ถึง)
+
+### หมายเหตุ deployment
+- อัป `index.html` + `my-orders.html` (additive block "CARBON FUSION LAYER"
+  ท้าย <style> — rollback = ลบบล็อกทั้งก้อน, ไม่มีอะไรแตะนอกจากนี้)
+
+---
+
+## 2026-09-16 (รอบที่ 14b) — Revise: ใช้ฟอนต์เดิม + เอารูปจอยออก
+
+### เปลี่ยนอะไร (ตามคำขอ "ใช้ font เดิม เอารูปจอยออก" + "รูป controller เอาออกไปเลย")
+1. **ฟอนต์เดิม** — ลบ Chakra Petch ออกจาก font link ทั้งหมด:
+   หัวเรื่อง/ชื่อการ์ด = IBM Plex Sans Thai เดิม, เลข 01/02 = IBM Plex Mono
+2. **ลบภาพจอย hero** + ไฟล์รูป — hero เป็น typography อย่างเดียว
+3. **ลบ controller image ออกจาก mode cards ทั้ง 2 ใบ** (SVGDS4) → การ์ด text-only
+   (JS ปลอดภัย: querySelectorAll('.mode-card-media') = list ว่าง)
+
+### ยังคงไว้
+- Direction เดิม: hero ซ้ายจัดเรียง, catalog cards 01/02, spec line, CTA ↗,
+  hairline, ธีม L&S + Fusion ทั้งหมด
+
+### หมายเหตุ deployment
+- อัป `index.html` ตัวเดียว
+
+---
+
+## 2026-09-16 (รอบที่ 14) — Landing direction แบบ headglytch.com/presets
+
+### เปลี่ยนอะไร
+โจทย์: อยากได้หน้าเว็บประมาณ headglytch/presets ปรับให้เข้ากับเว็บ → เลือกขอบเขต "landing ก่อน"
+(ไม่ clone ตรงๆ แต่เอาระบบภาพมาครอบ: hero ยักษ์ + การ์ดแคตาล็อกเลขลำดับ + UI เรียบ)
+
+1. **Hero ใหม่** — ข้อความย้ายไปฝั่งซ้าย + ตัวอักษรยักษ์ (Chakra Petch display,
+   clamp 38-62px) + eyebrow "// CONTROLLER MOD BY MOSU · BUILT FOR PROS BY PRO"
+   (tagline เดิมของร้านจาก hero ฟอร์ม) + **ภาพจอยสตูดิโอ** ฝั่งขวา
+   (`brand/hero-controller-studio.jpg` — generate ใหม่: จอยสองโทน matte,
+   ไลม์ rim light, พื้นดำกลืนหน้าเว็บ, ไม่มีโลโก้) — บนมือถือภาพขึ้นด้านบน
+2. **Mode cards = catalog 01/02** — เพิ่มเลขลำดับ (01 Custom Build / 02
+   เปลี่ยนอนาล็อก), ชื่อเป็น display font 24px, desc เป็น spec line แบบ mono
+   ตัวเล็ก, CTA เป็น uppercase + ลูกศร ↗ (สไตล์หัวglytch) + hairline
+   คั่นระหว่าง hero กับ grid + media สูงขึ้น 230px
+3. **ฟอนต์ Chakra Petch** กลับมาใน font link (ใช้เฉพาะ landing —
+   หัวเรื่อง/เลขลำดับ/ชื่อการ์ด เท่านั้น)
+
+### สิ่งที่ยังเป็นเหมือนเดิม
+- ธีม Orbital L&S ทั้งหมด (แสง/เงา/ไลม์/มุมโค้งการ์ด) — landing layer
+  วางต่อท้าย ทำงานร่วม (กรอบ hero ใช้ --glow-rgb/--edge-hi/--shadow-rest เดิม)
+- ฟอร์มวิซาร์ด, my-orders, JS/flow/ราคา — ไม่แตะ (HTML ที่แก้ = ส่วน landing
+  เท่านั้น, id/class ที่ JS ใช้คงครบ)
+
+### หมายเหตุ deployment
+- อัป `index.html` + **ไฟล์ใหม่ `brand/hero-controller-studio.jpg`** (65 KB)
+- รูปใน mode cards (SVGDS4/*.svg) ยังเรียกเหมือนเดิม — ถ้า preview在这ดูรูปใน
+  การ์ดไม่ขึ้น เพราะ workspace นี้ไม่มีโฟลเดอร์ SVGDS4 (เว็บจริงบน host มีปกติ)
+
+### ต้องทำอะไรต่อ
+- ถ้าถูกใจ direction: ขยายไป ฟอร์มวิซาร์ด + my-orders ในรอบถัดไป
+- optional: strip "ต้องการงานเฉพาะทาง?" + ช่องทางติดต่อ (ต้องมีข้อมูล LINE/อีเมลก่อน)
+
+---
+
+## 2026-09-11 (รอบที่ 12) — ใช้ธีม "Orbital Light & Shadow" ตามสเปค THEME.md
+
+### เปลี่ยนอะไร
+ตามสั่ง: ใช้ theme จาก **`THEME.md`** (อยู่บน branch main) — ธีม "Orbital Light & Shadow"
+ที่เขียนสเปคไว้ละเอียด (พาเลตต์เดิมทั้งหมด เปลี่ยนแค่ แสง/ขอบ/เงา/ความโค้ง)
+
+**หมายเหตุ:** งาน ad-hoc 2 รอบก่อนหน้า (แสงสตูดิโอรอบ 10 + ชุด "หน้าต่างกระจก" รอบ 11)
+ถูก **roll back ออกทั้งหมด** แล้วแทนที่ด้วยธีมตามสเปคนี้ ซึ่งออกแบบมาให้เป็น
+บล็อก additive ที่ไม่แตะกฎเดิม
+
+### โครงสร้าง (ตาม spec)
+1. **ตัวแปรแกน** เพิ่มใน `:root` — `--glow-rgb` (สีแสงเรือง = สีแบรนด์, แยก RGB
+   เพื่อใส่ alpha ได้), `--edge-hi` (ไฮไลต์ขอบบน), `--card-sheen` (แสงอาบบน→ล่าง),
+   `--shadow-rest` / `--shadow-raised` (เงา 2 ชั้น) + override `--glow-rgb`
+   ในธีม gold (ทอง 203,178,106) / carbon (ไลม์เดิม) → สลับธีมแสงเรืองเปลี่ยนสีเอง
+2. **เวทีแสงพื้นหลัง** `body::after` — ไฟส่องจากบน + vignette มุมมืดลง
+   (ซ้อนทับ dot grid + `--corner-glow-*` เดิม แผง `?tune=1` ยังปรับต่อได้)
+3. **บล็อก `ORBITAL LIGHT & SHADOW LAYER`** ท้าย `<style>` (ค้นหา marker นี้ได้)
+   recipe ราย component ตาม spec §7:
+   - 7.1 การ์ดทั่วไป = กระจกยกตัว (sheen + ขอบ `rgba(var(--glow-rgb),0.20)` + ไฮไลต์ขอบบน + เงา 2 ชั้น)
+   - 7.2 summary sticky = ขอบเรืองแสง (วงแหวน + แสงฟุ้ง)
+   - 7.3 option/preset/platform = hover ลอย -2px / selected พื้นอมไลม์ + เรือง
+     ของหมด (soldout) ห้ามเด้งห้ามเรือง
+   - 7.4 input = "บ่อบุ๋ม" recessed + โฟกัสเป็นวงแสง (ไม่ทับลูกศร select)
+   - 7.5 ปุ่มหลัก = ไล่แสง + เรืองใต้ตัว + กดยุบ
+   - 7.6 ปุ่มรอง = แกะสลักตื้น + วงเรืองตอน hover
+   - 7.7 pill/toggle = ร่องบุ๋ม + ก้อน active ยกเด่นเรือง (wizard/ภาษา/ธีม/3D view/spin/step dot)
+   - 7.8 กล่องลอย (float summary/dropdown/tooltip) = เงาลึกสุด + วงเรือง
+   - 7.9 badge/QR = มิติเล็กน้อย
+   - §6 สเกลความโค้ง: 16/14/12/10/999px
+4. **my-orders.html** ได้ตาม §9 (ตัวแปร + เวทีแสง + recipe order-card/badge/toggle)
+5. ตัวเลข mono + `tabular-nums` (BOM/ราคา/summary wizard) ตาม §3
+
+### สิ่งที่ยังเป็นเหมือนเดิม
+- พาลเล็ตสี :root ทุกเฉด, ธีม gold/carbon, JS/logic/flow เลือกสินค้า — ไม่แตะ
+- กฎเดิมทุกบรรทัดยังอยู่ครบ — diff เทียบ commit ก่อนหน้า = เพิ่มล้วน
+  (แก้ 2 บรรทัดคือบรรทัด typography ที่เติมค่าต่อท้าย)
+
+### ต้องทำอะไรต่อ
+- deploy: อัป `index.html` + `my-orders.html` เข้า Apps Script
+- **ไม่ต้อง**แก้ `?v=` ของ controller-3d*.js (ไม่ได้แตะไฟล์ JS)
+- เผื่อใช้ธีมนี้กับหน้าอื่น: ดู THEME.md §9 (ก๊อป 3 ส่วน: ตัวแปร → เวทีแสง → จับคู่ recipe)
+
+---
+
 ## 2026-09-11 (รอบที่ 9) — เพิ่มพรีวิว 3 มิติของ PS5 (DualSense)
 
 ### เปลี่ยนอะไร
